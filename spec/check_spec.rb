@@ -6,6 +6,34 @@ describe WampClient::Check do
     include WampClient::Check
   end
 
+  describe '#check_equal' do
+
+    it 'raises exception when value does not equal expected' do
+      expect { DummyClass.check_equal('test', false, true) }.to raise_exception("The 'test' argument must have the value 'false'.  Instead the value was 'true'")
+    end
+
+    it 'does not raise exception when value equals expected' do
+      expect { DummyClass.check_equal('test', true, true) }.not_to raise_exception
+    end
+
+  end
+
+  describe '#check_gte' do
+
+    it 'raises exception when value is less than expected' do
+      expect { DummyClass.check_gte('test', 3, 2) }.to raise_exception("The 'test' argument must be greater than or equal to '3'.  Instead the value was '2'")
+    end
+
+    it 'does not raise exception when value equals expected' do
+      expect { DummyClass.check_gte('test', 3, 3) }.not_to raise_exception
+    end
+
+    it 'does not raise exception when value is greater than expected' do
+      expect { DummyClass.check_gte('test', 3, 4) }.not_to raise_exception
+    end
+
+  end
+
   describe '#check_nil' do
 
     it 'raises exception when nil and nil is not allowed' do
@@ -29,19 +57,19 @@ describe WampClient::Check do
   describe '#check_integer' do
 
     it 'raises exception when nil and nil is not allowed' do
-      expect { DummyClass.check_integer('test', nil, false) }.to raise_exception("The 'test' argument cannot be nil")
+      expect { DummyClass.check_int('test', nil, false) }.to raise_exception("The 'test' argument cannot be nil")
     end
 
     it 'does not raise exception when nil and nil is allowed' do
-      expect { DummyClass.check_integer('test', nil, true) }.not_to raise_exception
+      expect { DummyClass.check_int('test', nil, true) }.not_to raise_exception
     end
 
     it 'raises exception when not an integer' do
-      expect { DummyClass.check_integer('test', '1') }.to raise_exception("The 'test' argument must be an integer")
+      expect { DummyClass.check_int('test', '1') }.to raise_exception("The 'test' argument must be an integer")
     end
 
     it 'does not raise exception when it is an integer' do
-      expect { DummyClass.check_integer('test', 1) }.not_to raise_exception
+      expect { DummyClass.check_int('test', 1) }.not_to raise_exception
     end
 
   end

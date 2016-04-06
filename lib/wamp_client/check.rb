@@ -6,11 +6,20 @@ module WampClient
     end
 
     module ClassMethods
+
+      def check_equal(name, expected, value)
+        raise ArgumentError, "The '#{name}' argument must have the value '#{expected}'.  Instead the value was '#{value}'" unless value == expected
+      end
+
+      def check_gte(name, expected, value)
+        raise ArgumentError, "The '#{name}' argument must be greater than or equal to '#{expected}'.  Instead the value was '#{value}'" unless value >= expected
+      end
+
       def check_nil(name, param, nil_allowed)
         raise ArgumentError, "The '#{name}' argument cannot be nil" if param.nil? and not nil_allowed
       end
 
-      def check_integer(name, param, nil_allowed=false)
+      def check_int(name, param, nil_allowed=false)
         check_nil(name, param, nil_allowed)
         raise ArgumentError, "The '#{name}' argument must be an integer" unless param.nil? or param.is_a? Integer
       end
@@ -40,7 +49,7 @@ module WampClient
       end
 
       def check_id(name, param, nil_allowed=false)
-        check_integer(name, param, nil_allowed)
+        check_int(name, param, nil_allowed)
       end
     end
 
