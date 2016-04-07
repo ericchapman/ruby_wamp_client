@@ -18,12 +18,13 @@ module WampClient
       # Callback when there is an error.  Parameters are
       attr_accessor :on_error
 
+      attr_accessor :type
+
       # Parameters
       @uri          # [String] The uri of the router
       @headers      # [Hash] The headers to send during the connection
       @protocol     # [String] The protocol
       @serializer   # [WampClient::Serializer::Base] The serializer
-      @type         # [String] The type of transport
       @connected    # [Boolean] The connection status
 
       # Constructor for the transport
@@ -81,7 +82,7 @@ module WampClient
 
       def initialize(options)
         super(options)
-        @type = 'websocket'
+        self.type = 'websocket'
       end
 
       def connect

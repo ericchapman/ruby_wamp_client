@@ -4,7 +4,7 @@ module WampClient
   module Serializer
     class Base
 
-      @type       # [String] The type of serialization
+      attr_accessor :type
 
       # Serializes the object
       # @param object - The object to serialize
@@ -24,7 +24,7 @@ module WampClient
     class JSONSerializer < Base
 
       def initialize
-        @type = 'json'
+        self.type = 'json'
       end
 
       def serialize(object)

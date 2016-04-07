@@ -147,7 +147,6 @@ module WampClient
 
     # Processes received messages
     def _process_message(msg)
-      puts msg
 
       message = WampClient::Message::Base.parse(msg)
 
