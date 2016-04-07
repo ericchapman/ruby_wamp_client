@@ -53,6 +53,10 @@ module WampClient
       self.id = id
     end
 
+    def unsubscribe
+      self.session.unsubscribe(self)
+    end
+
   end
 
   class Session
@@ -195,11 +199,15 @@ module WampClient
           if message.is_a? WampClient::Message::Error
             if message.request_type == 32
               self._process_subscribed_error(message)
+            elsif message.request_type == 34
+              self._process_unsubscribed_error(message)
             end
             # TODO: Remaining Errors
           else
             if message.is_a? WampClient::Message::Subscribed
               self._process_subscribed_success(message)
+            elsif message.is_a? WampClient::Message::Unsubscribed
+              self._process_unsubscribed_success(message)
             elsif message.is_a? WampClient::Message::Event
               self._process_event(message)
             else
@@ -213,13 +221,13 @@ module WampClient
 
     end
 
-    #region Subscription Logic
+    #region Subscribe Logic
 
     # Subscribes to a topic
     # @param topic [String] The topic to subscribe to
     # @param handler [lambda] The handler(args, kwargs, details) when a publish is received
     # @param options [Hash] The options for the subscription
-    # @param callback [lambda] The callback(error, details) called to signal if the subscription was a success or not
+    # @param callback [lambda] The callback(subscription, error, details) called to signal if the subscription was a success or not
     def subscribe(topic, handler, options={}, callback=nil)
       unless is_open?
         # TODO: Throw Exception??
@@ -244,9 +252,10 @@ module WampClient
       # Remove the pending subscription, add it to the registered ones, and inform the caller
       s = self._requests[:subscribe].delete(r_id)
       if s
-        self._subscriptions[s_id] = Subscription.new(s[:t], s[:h], s[:o], self, s_id)
+        n_s = Subscription.new(s[:t], s[:h], s[:o], self, s_id)
+        self._subscriptions[s_id] = n_s
         c = s[:c]
-        c.call(nil, nil) if c
+        c.call(n_s, nil, nil) if c
       end
 
     end
@@ -263,7 +272,7 @@ module WampClient
       s = self._requests[:subscribe].delete(r_id)
       if s
         c = s[:c]
-        c.call(e, d) if c
+        c.call(nil, e, d) if c
       end
 
     end
@@ -281,6 +290,62 @@ module WampClient
       if s
         h = s.handler
         h.call(args, kwargs, details) if h
+      end
+
+    end
+
+    #endregion
+
+    #region Unsubscribe Logic
+
+    # Unsubscribes from a subscription
+    # @param subscription [Subscription] The subscription object from when the subscription was created
+    # @param callback [lambda] The callback(subscription, error, details) called to signal if the subscription was a success or not
+    def unsubscribe(subscription, callback=nil)
+      unless is_open?
+        # TODO: Throw Exception??
+      end
+
+      # Create a new subscribe request
+      request = self._generate_id
+      self._requests[:unsubscribe][request] = { s: subscription, c: callback }
+
+      # Send the message
+      unsubscribe = WampClient::Message::Unsubscribe.new(request, subscription.id)
+      self.transport.send_message(unsubscribe.payload)
+    end
+
+    # Processes the response to a subscribe request
+    # @param msg [WampClient::Message::Unsubscribed] The response from the unsubscribe
+    def _process_unsubscribed_success(msg)
+
+      r_id = msg.unsubscribe_request
+
+      # Remove the pending unsubscription, add it to the registered ones, and inform the caller
+      s = self._requests[:unsubscribe].delete(r_id)
+      if s
+        n_s = s[:s]
+        self._subscriptions.delete(n_s.id)
+        c = s[:c]
+        c.call(n_s, nil, nil) if c
+      end
+
+    end
+
+
+    # Processes an error from a request
+    # @param msg [WampClient::Message::Error] The response from the subscribe
+    def _process_unsubscribed_error(msg)
+
+      r_id = msg.request_request
+      d = msg.details
+      e = msg.error
+
+      # Remove the pending subscription and inform the caller of the failure
+      s = self._requests[:unsubscribe].delete(r_id)
+      if s
+        c = s[:c]
+        c.call(nil, e, d) if c
       end
 
     end

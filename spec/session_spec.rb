@@ -171,8 +171,13 @@ describe WampClient::Session do
 
     it 'grants a request' do
       count = 0
-      callback = lambda do |error, details|
+      callback = lambda do |subscription, error, details|
         count += 1
+
+        expect(subscription).not_to be_nil
+        expect(subscription.id).to eq(3456)
+        expect(error).to be_nil
+        expect(details).to be_nil
       end
 
       session.subscribe('test.test', nil, {test: 1}, callback)
@@ -198,9 +203,10 @@ describe WampClient::Session do
 
     it 'errors on a request' do
       count = 0
-      callback = lambda do |error, details|
+      callback = lambda do |subscription, error, details|
         count += 1
 
+        expect(subscription).to be_nil
         expect(error).to eq('this.failed')
         expect(details).to eq({fail:true})
       end
@@ -252,5 +258,111 @@ describe WampClient::Session do
     end
 
   end
+
+  describe 'unsubscribe' do
+
+    before(:each) do
+      session.join('test')
+      welcome = WampClient::Message::Welcome.new(1234, {})
+      transport.receive_message(welcome.payload)
+
+      callback = lambda do |subscription, error, details|
+        @subscription = subscription
+      end
+
+      session.subscribe('test.test', nil, {test: 1}, callback)
+
+      # Get the request ID
+      @request_id = session._requests[:subscribe].keys.first
+
+      # Generate server response
+      subscribed = WampClient::Message::Subscribed.new(@request_id, 3456)
+      transport.receive_message(subscribed.payload)
+
+      transport.messages = []
+    end
+
+    it 'adds a request to the request queue' do
+      session.unsubscribe(@subscription, nil)
+
+      @request_id = session._requests[:unsubscribe].keys.first
+
+      # Check the transport messages
+      expect(transport.messages.count).to eq(1)
+      expect(transport.messages[0][0]).to eq(UNSUBSCRIBE)
+      expect(transport.messages[0][1]).to eq(@request_id)
+      expect(transport.messages[0][2]).to eq(@subscription.id)
+
+      # Check the request dictionary
+      expect(session._requests[:unsubscribe][@request_id]).not_to be_nil
+
+      # Check the subscriptions
+      expect(session._subscriptions.count).to eq(1)
+
+    end
+
+    it 'grants a request' do
+
+      count = 0
+      callback = lambda do |subscription, error, details|
+        count += 1
+
+        expect(subscription.id).to eq(@subscription.id)
+        expect(error).to be_nil
+        expect(details).to be_nil
+      end
+
+      session.unsubscribe(@subscription, callback)
+
+      @request_id = session._requests[:unsubscribe].keys.first
+
+      expect(count).to eq(0)
+
+      # Generate Server Response
+      unsubscribed = WampClient::Message::Unsubscribed.new(@request_id)
+      transport.receive_message(unsubscribed.payload)
+
+      # Check the request dictionary
+      expect(session._requests[:unsubscribe].count).to eq(0)
+
+      # Check the subscriptions
+      expect(session._subscriptions.count).to eq(0)
+
+    end
+
+    it 'errors on a request' do
+
+      count = 0
+      callback = lambda do |subscription, error, details|
+        count += 1
+
+        expect(subscription).to be_nil
+        expect(error).to eq('this.failed')
+        expect(details).to eq({fail:true})
+      end
+
+      session.unsubscribe(@subscription, callback)
+
+      @request_id = session._requests[:unsubscribe].keys.first
+
+      expect(count).to eq(0)
+
+      # Generate Server Response
+      subscribed = WampClient::Message::Error.new(UNSUBSCRIBE, @request_id, {fail:true}, 'this.failed')
+      transport.receive_message(subscribed.payload)
+
+      expect(count).to eq(1)
+
+      # Check the request dictionary
+      expect(session._requests[:unsubscribe].count).to eq(0)
+
+      # Check the subscriptions
+      expect(session._subscriptions.count).to eq(1)
+
+    end
+
+
+  end
+
 
 end
