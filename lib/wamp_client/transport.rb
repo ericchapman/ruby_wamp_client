@@ -97,7 +97,7 @@ module WampClient
         end
 
         @ws.onmessage do |msg, type|
-          self.on_message.call(@serializer.deserialize(msg)) unless self.on_message.nil? or type != 'text'
+          self.on_message.call(@serializer.deserialize(msg)) unless self.on_message.nil?
         end
 
         @ws.onclose do |code, reason|

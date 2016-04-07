@@ -42,6 +42,19 @@ module WampClient
       }
   }
 
+  class Subscription
+    attr_accessor :topic, :handler, :options, :session, :id
+
+    def initialize(topic, handler, options, session, id)
+      self.topic = topic
+      self.handler = handler
+      self.options = options
+      self.session = session
+      self.id = id
+    end
+
+  end
+
   class Session
     # on_join callback is called when the session joins the router.  It has the following parameters
     # @param details [Hash] Object containing information about the joined session
@@ -52,10 +65,10 @@ module WampClient
     # @param details [Hash] Object containing information about the left session
     attr_accessor :on_leave
 
-    attr_accessor :id, :realm
+    attr_accessor :id, :realm, :transport
 
     # Private attributes
-    attr_accessor :_goodbye_sent
+    attr_accessor :_goodbye_sent, :_requests, :_subscriptions
 
     # Constructor
     # @param transport [WampClient::Transport::Base] The transport that the session will use
@@ -66,7 +79,7 @@ module WampClient
       self.realm = nil
 
       # Outstanding Requests
-      @requests = {
+      self._requests = {
           publish: {},
           subscribe: {},
           unsubscribe: {},
@@ -76,7 +89,7 @@ module WampClient
       }
 
       # Subscriptions in place;
-      @subscriptions = {}
+      self._subscriptions = {}
 
       # Registrations in place;
       @registrations = {}
@@ -85,8 +98,8 @@ module WampClient
       @invocations = {}
 
       # Setup Transport
-      @transport = transport
-      @transport.on_message = lambda do |msg|
+      self.transport = transport
+      self.transport.on_message = lambda do |msg|
         self._process_message(msg)
       end
 
@@ -107,24 +120,23 @@ module WampClient
     # Joins the WAMP Router
     # @param realm [String] The name of the realm
     def join(realm)
-      self.realm = realm
-
       if is_open?
         # TODO: Throw Exception??
       end
+
+      self.realm = realm
 
       details = {}
       details[:roles] = WAMP_FEATURES
 
       # Send Hello message
       hello = WampClient::Message::Hello.new(realm, details)
-      @transport.send_message(hello.payload)
+      self.transport.send_message(hello.payload)
     end
 
     # Leaves the WAMP Router
     # @param reason [String] URI signalling the reason for leaving
     def leave(reason='wamp.close.normal', message=nil)
-
       unless is_open?
         # TODO: Throw Exception??
       end
@@ -134,11 +146,9 @@ module WampClient
 
       # Send Goodbye message
       goodbye = WampClient::Message::Goodbye.new(details, reason)
-      @transport.send_message(goodbye.payload)
+      self.transport.send_message(goodbye.payload)
       self._goodbye_sent = true
     end
-
-    #region Private Methods
 
     # Generates and ID according to the specification (Section 5.1.2)
     def _generate_id
@@ -147,6 +157,7 @@ module WampClient
 
     # Processes received messages
     def _process_message(msg)
+      puts msg
 
       message = WampClient::Message::Base.parse(msg)
 
@@ -170,7 +181,7 @@ module WampClient
           # If we didn't send the goodbye, respond
           unless self._goodbye_sent
             goodbye = WampClient::Message::Goodbye.new({}, 'wamp.error.goodbye_and_out')
-            @transport.send_message(goodbye.payload)
+            self.transport.send_message(goodbye.payload)
           end
 
           # Close out session
@@ -182,12 +193,94 @@ module WampClient
         else
 
           if message.is_a? WampClient::Message::Error
-            # TODO: Find method that this error is for and return
+            if message.request_type == 32
+              self._process_subscribed_error(message)
+            end
+            # TODO: Remaining Errors
           else
+            if message.is_a? WampClient::Message::Subscribed
+              self._process_subscribed_success(message)
+            elsif message.is_a? WampClient::Message::Event
+              self._process_event(message)
+            else
+              # TODO: Some Error?  Not Implemented yet
+            end
             # TODO: Process message
           end
 
         end
+      end
+
+    end
+
+    #region Subscription Logic
+
+    # Subscribes to a topic
+    # @param topic [String] The topic to subscribe to
+    # @param handler [lambda] The handler(args, kwargs, details) when a publish is received
+    # @param options [Hash] The options for the subscription
+    # @param callback [lambda] The callback(error, details) called to signal if the subscription was a success or not
+    def subscribe(topic, handler, options={}, callback=nil)
+      unless is_open?
+        # TODO: Throw Exception??
+      end
+
+      # Create a new subscribe request
+      request = self._generate_id
+      self._requests[:subscribe][request] = {t: topic, h: handler, o: options, c: callback}
+
+      # Send the message
+      subscribe = WampClient::Message::Subscribe.new(request, options, topic)
+      self.transport.send_message(subscribe.payload)
+    end
+
+    # Processes the response to a subscribe request
+    # @param msg [WampClient::Message::Subscribed] The response from the subscribe
+    def _process_subscribed_success(msg)
+
+      r_id = msg.subscribe_request
+      s_id = msg.subscription
+
+      # Remove the pending subscription, add it to the registered ones, and inform the caller
+      s = self._requests[:subscribe].delete(r_id)
+      if s
+        self._subscriptions[s_id] = Subscription.new(s[:t], s[:h], s[:o], self, s_id)
+        c = s[:c]
+        c.call(nil, nil) if c
+      end
+
+    end
+
+    # Processes an error from a request
+    # @param msg [WampClient::Message::Error] The response from the subscribe
+    def _process_subscribed_error(msg)
+
+      r_id = msg.request_request
+      d = msg.details
+      e = msg.error
+
+      # Remove the pending subscription and inform the caller of the failure
+      s = self._requests[:subscribe].delete(r_id)
+      if s
+        c = s[:c]
+        c.call(e, d) if c
+      end
+
+    end
+
+    # Processes and event from the broker
+    # @param msg [WampClient::Message::Event] An event that was published
+    def _process_event(msg)
+
+      s_id = msg.subscribed_subscription
+      details = msg.details
+      args = msg.publish_arguments
+      kwargs = msg.publish_argumentskw
+
+      s = self._subscriptions[s_id]
+      if s
+        h = s.handler
+        h.call(args, kwargs, details) if h
       end
 
     end
