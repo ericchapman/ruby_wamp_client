@@ -5,7 +5,7 @@ require 'wamp_client/check'
 module WampClient
   module Message
 
-    class Message
+    class Base
       include WampClient::Check
 
       HELLO = 1
@@ -87,7 +87,7 @@ module WampClient
     # Sent by a Client to initiate opening of a WAMP session to a Router attaching to a Realm.
     # Formats:
     #   [HELLO, Realm|uri, Details|dict]
-    class Hello < Message
+    class Hello < Base
       @realm
       @details
 
@@ -137,7 +137,7 @@ module WampClient
     # Sent by a Router to accept a Client.  The WAMP session is now open.
     # Formats:
     #   [WELCOME, Session|id, Details|dict]
-    class Welcome < Message
+    class Welcome < Base
       @session
       @details
 
@@ -187,7 +187,7 @@ module WampClient
     # Sent by a Peer*to abort the opening of a WAMP session.  No response is expected.
     # Formats:
     #   [ABORT, Details|dict, Reason|uri]
-    class Abort < Message
+    class Abort < Base
       @details
       @reason
 
@@ -237,7 +237,7 @@ module WampClient
     # Sent by a Peer to close a previously opened WAMP session.  Must be echo'ed by the receiving Peer.
     # Formats:
     #   [GOODBYE, Details|dict, Reason|uri]
-    class Goodbye < Message
+    class Goodbye < Base
       @details
       @reason
 
@@ -289,7 +289,7 @@ module WampClient
     #   [ERROR, REQUEST.Type|int, REQUEST.Request|id, Details|dict, Error|uri]
     #   [ERROR, REQUEST.Type|int, REQUEST.Request|id, Details|dict, Error|uri, Arguments|list]
     #   [ERROR, REQUEST.Type|int, REQUEST.Request|id, Details|dict, Error|uri, Arguments|list, ArgumentsKw|dict]
-    class Error < Message
+    class Error < Base
       @request_type
       @request_request
       @details
@@ -377,7 +377,7 @@ module WampClient
     #   [PUBLISH, Request|id, Options|dict, Topic|uri]
     #   [PUBLISH, Request|id, Options|dict, Topic|uri, Arguments|list]
     #   [PUBLISH, Request|id, Options|dict, Topic|uri, Arguments|list, ArgumentsKw|dict]
-    class Publish < Message
+    class Publish < Base
       @request
       @options
       @topic
@@ -455,7 +455,7 @@ module WampClient
     # Acknowledge sent by a Broker to a Publisher for acknowledged publications.
     # Formats:
     #   [PUBLISHED, PUBLISH.Request|id, Publication|id]
-    class Published < Message
+    class Published < Base
       @publish_request
       @publication
 
@@ -505,7 +505,7 @@ module WampClient
     # Subscribe request sent by a Subscriber to a Broker to subscribe to a topic.
     # Formats:
     #   [SUBSCRIBE, Request|id, Options|dict, Topic|uri]
-    class Subscribe < Message
+    class Subscribe < Base
       @request
       @options
       @topic
@@ -563,7 +563,7 @@ module WampClient
     # Acknowledge sent by a Broker to a Subscriber to acknowledge a subscription.
     # Formats:
     #   [SUBSCRIBED, SUBSCRIBE.Request|id, Subscription|id]
-    class Subscribed < Message
+    class Subscribed < Base
       @subscribe_request
       @subscription
 
@@ -613,7 +613,7 @@ module WampClient
     # Unsubscribe request sent by a Subscriber to a Broker to unsubscribe a subscription.
     # Formats:
     #   [UNSUBSCRIBE, Request|id, SUBSCRIBED.Subscription|id]
-    class Unsubscribe < Message
+    class Unsubscribe < Base
       @request
       @subscribed_subscription
 
@@ -663,7 +663,7 @@ module WampClient
     # Acknowledge sent by a Broker to a Subscriber to acknowledge unsubscription.
     # Formats:
     #   [UNSUBSCRIBED, UNSUBSCRIBE.Request|id]
-    class Unsubscribed < Message
+    class Unsubscribed < Base
       @unsubscribe_request
 
       def initialize(unsubscribe_request)
@@ -707,7 +707,7 @@ module WampClient
     #   [EVENT, SUBSCRIBED.Subscription|id, PUBLISHED.Publication|id, Details|dict]
     #   [EVENT, SUBSCRIBED.Subscription|id, PUBLISHED.Publication|id, Details|dict, PUBLISH.Arguments|list]
     #   [EVENT, SUBSCRIBED.Subscription|id, PUBLISHED.Publication|id, Details|dict, PUBLISH.Arguments|list, PUBLISH.ArgumentsKw|dict]
-    class Event < Message
+    class Event < Base
       @subscribed_subscription
       @published_publication
       @details
@@ -787,7 +787,7 @@ module WampClient
     #   [CALL, Request|id, Options|dict, Procedure|uri]
     #   [CALL, Request|id, Options|dict, Procedure|uri, Arguments|list]
     #   [CALL, Request|id, Options|dict, Procedure|uri, Arguments|list, ArgumentsKw|dict]
-    class Call < Message
+    class Call < Base
       @request
       @options
       @procedure
@@ -867,7 +867,7 @@ module WampClient
     #   [RESULT, CALL.Request|id, Details|dict]
     #   [RESULT, CALL.Request|id, Details|dict, YIELD.Arguments|list]
     #   [RESULT, CALL.Request|id, Details|dict, YIELD.Arguments|list, YIELD.ArgumentsKw|dict]
-    class Result < Message
+    class Result < Base
       @call_request
       @details
       @yield_arguments
@@ -937,7 +937,7 @@ module WampClient
     # A _Callees_ request to register an endpoint at a _Dealer_.
     # Formats:
     #   [REGISTER, Request|id, Options|dict, Procedure|uri]
-    class Register < Message
+    class Register < Base
       @request
       @options
       @procedure
@@ -995,7 +995,7 @@ module WampClient
     # Acknowledge sent by a _Dealer_ to a _Callee_ for successful registration.
     # Formats:
     #   [REGISTERED, REGISTER.Request|id, Registration|id]
-    class Registered < Message
+    class Registered < Base
       @register_request
       @registration
 
@@ -1045,7 +1045,7 @@ module WampClient
     # A _Callees_ request to unregister a previously established registration.
     # Formats:
     #   [UNREGISTER, Request|id, REGISTERED.Registration|id]
-    class Unregister < Message
+    class Unregister < Base
       @request
       @registered_registration
 
@@ -1095,7 +1095,7 @@ module WampClient
     # Acknowledge sent by a _Dealer_ to a _Callee_ for successful unregistration.
     # Formats:
     #   [UNREGISTERED, UNREGISTER.Request|id]
-    class Unregistered < Message
+    class Unregistered < Base
       @unregister_request
 
       def initialize(unregister_request)
@@ -1139,7 +1139,7 @@ module WampClient
     #   [INVOCATION, Request|id, REGISTERED.Registration|id, Details|dict]
     #   [INVOCATION, Request|id, REGISTERED.Registration|id, Details|dict, CALL.Arguments|list]
     #   [INVOCATION, Request|id, REGISTERED.Registration|id, Details|dict, CALL.Arguments|list, CALL.ArgumentsKw|dict]
-    class Invocation < Message
+    class Invocation < Base
       @request
       @registered_registration
       @details
@@ -1219,7 +1219,7 @@ module WampClient
     #   [YIELD, INVOCATION.Request|id, Options|dict]
     #   [YIELD, INVOCATION.Request|id, Options|dict, Arguments|list]
     #   [YIELD, INVOCATION.Request|id, Options|dict, Arguments|list, ArgumentsKw|dict]
-    class Yield < Message
+    class Yield < Base
       @invocation_request
       @options
       @arguments

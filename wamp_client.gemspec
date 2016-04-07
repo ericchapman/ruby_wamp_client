@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['eric.chappy@gmail.com']
   spec.summary       = %q{Web Application Messaging Protocol Client}
   spec.description   = %q{An implementation of The Web Application Messaging Protocol (WAMP)}
-  spec.homepage      = ''
+  spec.homepage      = 'https://github.com/ericchapman/ruby_wamp_client'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files -z`.split("\x0")
@@ -22,5 +22,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rake', '~> 10.0'
   spec.add_development_dependency 'rspec'
 
-  spec.add_dependency 'websocket', '~> 1.2.3'
+  spec.add_dependency 'websocket-eventmachine-client', '~> 1.1.0'
+  spec.add_dependency 'json', '~> 1.8.3'
 end

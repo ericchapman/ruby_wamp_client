@@ -2,7 +2,9 @@
 
 **UNDER DEVELOPMENT!**
 
-Client for talking to a WAMP Router
+Client for talking to a WAMP Router.  This is defined at
+
+    https://tools.ietf.org/html/draft-oberstet-hybi-tavendo-wamp-02
 
 ## Installation
 
@@ -26,7 +28,7 @@ TODO: Write usage instructions here
 
 ## Contributing
 
-1. Fork it ( https://github.com/[ericchapman]/wamp_client/fork )
+1. Fork it ( https://github.com/ericchapman/ruby_wamp_client )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)

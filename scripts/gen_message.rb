@@ -68,7 +68,7 @@ source_file_header = "require 'wamp_client/check'
 module WampClient
   module Message
 
-    class Message
+    class Base
       include WampClient::Check
 
 #{message_type_define}
@@ -319,7 +319,7 @@ messages.each do |message|
   source_file += '    # ' + message[:description] + "\n"
   source_file += "    # Formats:\n"
   source_file += param_formats
-  source_file += '    class ' + message[:name].capitalize + " < Message\n"
+  source_file += '    class ' + message[:name].capitalize + " < Base\n"
 
   # Generate the local variables
   params.each do |param|
@@ -430,7 +430,7 @@ messages.each do |message|
   # Generate Global Parser Test
   test_file += "\n    it 'globally parses the message and creates an object' do\n"
   test_file += "      params = [#{message_type_lookup[message[:name].upcase]},#{value_array.join(',')}]\n"
-  test_file += "      object = WampClient::Message::Message.parse(params)\n\n"
+  test_file += "      object = WampClient::Message::Base.parse(params)\n\n"
   params.each do |param|
     if param[:required]
       test_file += "      expect(object.#{param[:name]}).to eq(#{value_from_type(param[:type])})\n"
