@@ -35,14 +35,58 @@ module WampClient
 
       # @param params [Array]
       def self.parse(params)
-        Message.new
+        object = nil
+        if params[0] == HELLO
+          object = WampClient::Message::Hello.parse(params)
+        elsif params[0] == WELCOME
+          object = WampClient::Message::Welcome.parse(params)
+        elsif params[0] == ABORT
+          object = WampClient::Message::Abort.parse(params)
+        elsif params[0] == GOODBYE
+          object = WampClient::Message::Goodbye.parse(params)
+        elsif params[0] == ERROR
+          object = WampClient::Message::Error.parse(params)
+        elsif params[0] == PUBLISH
+          object = WampClient::Message::Publish.parse(params)
+        elsif params[0] == PUBLISHED
+          object = WampClient::Message::Published.parse(params)
+        elsif params[0] == SUBSCRIBE
+          object = WampClient::Message::Subscribe.parse(params)
+        elsif params[0] == SUBSCRIBED
+          object = WampClient::Message::Subscribed.parse(params)
+        elsif params[0] == UNSUBSCRIBE
+          object = WampClient::Message::Unsubscribe.parse(params)
+        elsif params[0] == UNSUBSCRIBED
+          object = WampClient::Message::Unsubscribed.parse(params)
+        elsif params[0] == EVENT
+          object = WampClient::Message::Event.parse(params)
+        elsif params[0] == CALL
+          object = WampClient::Message::Call.parse(params)
+        elsif params[0] == RESULT
+          object = WampClient::Message::Result.parse(params)
+        elsif params[0] == REGISTER
+          object = WampClient::Message::Register.parse(params)
+        elsif params[0] == REGISTERED
+          object = WampClient::Message::Registered.parse(params)
+        elsif params[0] == UNREGISTER
+          object = WampClient::Message::Unregister.parse(params)
+        elsif params[0] == UNREGISTERED
+          object = WampClient::Message::Unregistered.parse(params)
+        elsif params[0] == INVOCATION
+          object = WampClient::Message::Invocation.parse(params)
+        elsif params[0] == YIELD
+          object = WampClient::Message::Yield.parse(params)
+        end
+
+        object
       end
 
     end
-    # [HELLO, Realm|uri, Details|dict]
 
     # Hello
     # Sent by a Client to initiate opening of a WAMP session to a Router attaching to a Realm.
+    # Formats:
+    #   [HELLO, Realm|uri, Details|dict]
     class Hello < Message
       @realm
       @details
@@ -88,10 +132,11 @@ module WampClient
       end
 
     end
-    # [WELCOME, Session|id, Details|dict]
 
     # Welcome
     # Sent by a Router to accept a Client.  The WAMP session is now open.
+    # Formats:
+    #   [WELCOME, Session|id, Details|dict]
     class Welcome < Message
       @session
       @details
@@ -137,10 +182,11 @@ module WampClient
       end
 
     end
-    # [ABORT, Details|dict, Reason|uri]
 
     # Abort
     # Sent by a Peer*to abort the opening of a WAMP session.  No response is expected.
+    # Formats:
+    #   [ABORT, Details|dict, Reason|uri]
     class Abort < Message
       @details
       @reason
@@ -186,10 +232,11 @@ module WampClient
       end
 
     end
-    # [GOODBYE, Details|dict, Reason|uri]
 
     # Goodbye
     # Sent by a Peer to close a previously opened WAMP session.  Must be echo'ed by the receiving Peer.
+    # Formats:
+    #   [GOODBYE, Details|dict, Reason|uri]
     class Goodbye < Message
       @details
       @reason
@@ -235,12 +282,13 @@ module WampClient
       end
 
     end
-    # [ERROR, REQUEST.Type|int, REQUEST.Request|id, Details|dict, Error|uri]
-    # [ERROR, REQUEST.Type|int, REQUEST.Request|id, Details|dict, Error|uri, Arguments|list]
-    # [ERROR, REQUEST.Type|int, REQUEST.Request|id, Details|dict, Error|uri, Arguments|list, ArgumentsKw|dict]
 
     # Error
     # Error reply sent by a Peer as an error response to different kinds of requests.
+    # Formats:
+    #   [ERROR, REQUEST.Type|int, REQUEST.Request|id, Details|dict, Error|uri]
+    #   [ERROR, REQUEST.Type|int, REQUEST.Request|id, Details|dict, Error|uri, Arguments|list]
+    #   [ERROR, REQUEST.Type|int, REQUEST.Request|id, Details|dict, Error|uri, Arguments|list, ArgumentsKw|dict]
     class Error < Message
       @request_type
       @request_request
@@ -322,12 +370,13 @@ module WampClient
       end
 
     end
-    # [PUBLISH, Request|id, Options|dict, Topic|uri]
-    # [PUBLISH, Request|id, Options|dict, Topic|uri, Arguments|list]
-    # [PUBLISH, Request|id, Options|dict, Topic|uri, Arguments|list, ArgumentsKw|dict]
 
     # Publish
     # Sent by a Publisher to a Broker to publish an event.
+    # Formats:
+    #   [PUBLISH, Request|id, Options|dict, Topic|uri]
+    #   [PUBLISH, Request|id, Options|dict, Topic|uri, Arguments|list]
+    #   [PUBLISH, Request|id, Options|dict, Topic|uri, Arguments|list, ArgumentsKw|dict]
     class Publish < Message
       @request
       @options
@@ -401,10 +450,11 @@ module WampClient
       end
 
     end
-    # [PUBLISHED, PUBLISH.Request|id, Publication|id]
 
     # Published
     # Acknowledge sent by a Broker to a Publisher for acknowledged publications.
+    # Formats:
+    #   [PUBLISHED, PUBLISH.Request|id, Publication|id]
     class Published < Message
       @publish_request
       @publication
@@ -450,10 +500,11 @@ module WampClient
       end
 
     end
-    # [SUBSCRIBE, Request|id, Options|dict, Topic|uri]
 
     # Subscribe
     # Subscribe request sent by a Subscriber to a Broker to subscribe to a topic.
+    # Formats:
+    #   [SUBSCRIBE, Request|id, Options|dict, Topic|uri]
     class Subscribe < Message
       @request
       @options
@@ -507,10 +558,11 @@ module WampClient
       end
 
     end
-    # [SUBSCRIBED, SUBSCRIBE.Request|id, Subscription|id]
 
     # Subscribed
     # Acknowledge sent by a Broker to a Subscriber to acknowledge a subscription.
+    # Formats:
+    #   [SUBSCRIBED, SUBSCRIBE.Request|id, Subscription|id]
     class Subscribed < Message
       @subscribe_request
       @subscription
@@ -556,10 +608,11 @@ module WampClient
       end
 
     end
-    # [UNSUBSCRIBE, Request|id, SUBSCRIBED.Subscription|id]
 
     # Unsubscribe
     # Unsubscribe request sent by a Subscriber to a Broker to unsubscribe a subscription.
+    # Formats:
+    #   [UNSUBSCRIBE, Request|id, SUBSCRIBED.Subscription|id]
     class Unsubscribe < Message
       @request
       @subscribed_subscription
@@ -605,10 +658,11 @@ module WampClient
       end
 
     end
-    # [UNSUBSCRIBED, UNSUBSCRIBE.Request|id]
 
     # Unsubscribed
     # Acknowledge sent by a Broker to a Subscriber to acknowledge unsubscription.
+    # Formats:
+    #   [UNSUBSCRIBED, UNSUBSCRIBE.Request|id]
     class Unsubscribed < Message
       @unsubscribe_request
 
@@ -646,12 +700,13 @@ module WampClient
       end
 
     end
-    # [EVENT, SUBSCRIBED.Subscription|id, PUBLISHED.Publication|id, Details|dict]
-    # [EVENT, SUBSCRIBED.Subscription|id, PUBLISHED.Publication|id, Details|dict, PUBLISH.Arguments|list]
-    # [EVENT, SUBSCRIBED.Subscription|id, PUBLISHED.Publication|id, Details|dict, PUBLISH.Arguments|list, PUBLISH.ArgumentsKw|dict]
 
     # Event
     # Event dispatched by Broker to Subscribers for subscriptions the event was matching.
+    # Formats:
+    #   [EVENT, SUBSCRIBED.Subscription|id, PUBLISHED.Publication|id, Details|dict]
+    #   [EVENT, SUBSCRIBED.Subscription|id, PUBLISHED.Publication|id, Details|dict, PUBLISH.Arguments|list]
+    #   [EVENT, SUBSCRIBED.Subscription|id, PUBLISHED.Publication|id, Details|dict, PUBLISH.Arguments|list, PUBLISH.ArgumentsKw|dict]
     class Event < Message
       @subscribed_subscription
       @published_publication
@@ -725,12 +780,13 @@ module WampClient
       end
 
     end
-    # [CALL, Request|id, Options|dict, Procedure|uri]
-    # [CALL, Request|id, Options|dict, Procedure|uri, Arguments|list]
-    # [CALL, Request|id, Options|dict, Procedure|uri, Arguments|list, ArgumentsKw|dict]
 
     # Call
     # Call as originally issued by the _Caller_ to the _Dealer_.
+    # Formats:
+    #   [CALL, Request|id, Options|dict, Procedure|uri]
+    #   [CALL, Request|id, Options|dict, Procedure|uri, Arguments|list]
+    #   [CALL, Request|id, Options|dict, Procedure|uri, Arguments|list, ArgumentsKw|dict]
     class Call < Message
       @request
       @options
@@ -804,12 +860,13 @@ module WampClient
       end
 
     end
-    # [RESULT, CALL.Request|id, Details|dict]
-    # [RESULT, CALL.Request|id, Details|dict, YIELD.Arguments|list]
-    # [RESULT, CALL.Request|id, Details|dict, YIELD.Arguments|list, YIELD.ArgumentsKw|dict]
 
     # Result
     # Result of a call as returned by _Dealer_ to _Caller_.
+    # Formats:
+    #   [RESULT, CALL.Request|id, Details|dict]
+    #   [RESULT, CALL.Request|id, Details|dict, YIELD.Arguments|list]
+    #   [RESULT, CALL.Request|id, Details|dict, YIELD.Arguments|list, YIELD.ArgumentsKw|dict]
     class Result < Message
       @call_request
       @details
@@ -875,10 +932,11 @@ module WampClient
       end
 
     end
-    # [REGISTER, Request|id, Options|dict, Procedure|uri]
 
     # Register
     # A _Callees_ request to register an endpoint at a _Dealer_.
+    # Formats:
+    #   [REGISTER, Request|id, Options|dict, Procedure|uri]
     class Register < Message
       @request
       @options
@@ -932,10 +990,11 @@ module WampClient
       end
 
     end
-    # [REGISTERED, REGISTER.Request|id, Registration|id]
 
     # Registered
     # Acknowledge sent by a _Dealer_ to a _Callee_ for successful registration.
+    # Formats:
+    #   [REGISTERED, REGISTER.Request|id, Registration|id]
     class Registered < Message
       @register_request
       @registration
@@ -981,10 +1040,11 @@ module WampClient
       end
 
     end
-    # [UNREGISTER, Request|id, REGISTERED.Registration|id]
 
     # Unregister
     # A _Callees_ request to unregister a previously established registration.
+    # Formats:
+    #   [UNREGISTER, Request|id, REGISTERED.Registration|id]
     class Unregister < Message
       @request
       @registered_registration
@@ -1030,10 +1090,11 @@ module WampClient
       end
 
     end
-    # [UNREGISTERED, UNREGISTER.Request|id]
 
     # Unregistered
     # Acknowledge sent by a _Dealer_ to a _Callee_ for successful unregistration.
+    # Formats:
+    #   [UNREGISTERED, UNREGISTER.Request|id]
     class Unregistered < Message
       @unregister_request
 
@@ -1071,12 +1132,13 @@ module WampClient
       end
 
     end
-    # [INVOCATION, Request|id, REGISTERED.Registration|id, Details|dict]
-    # [INVOCATION, Request|id, REGISTERED.Registration|id, Details|dict, CALL.Arguments|list]
-    # [INVOCATION, Request|id, REGISTERED.Registration|id, Details|dict, CALL.Arguments|list, CALL.ArgumentsKw|dict]
 
     # Invocation
     # Actual invocation of an endpoint sent by _Dealer_ to a _Callee_.
+    # Formats:
+    #   [INVOCATION, Request|id, REGISTERED.Registration|id, Details|dict]
+    #   [INVOCATION, Request|id, REGISTERED.Registration|id, Details|dict, CALL.Arguments|list]
+    #   [INVOCATION, Request|id, REGISTERED.Registration|id, Details|dict, CALL.Arguments|list, CALL.ArgumentsKw|dict]
     class Invocation < Message
       @request
       @registered_registration
@@ -1150,12 +1212,13 @@ module WampClient
       end
 
     end
-    # [YIELD, INVOCATION.Request|id, Options|dict]
-    # [YIELD, INVOCATION.Request|id, Options|dict, Arguments|list]
-    # [YIELD, INVOCATION.Request|id, Options|dict, Arguments|list, ArgumentsKw|dict]
 
     # Yield
     # Actual yield from an endpoint sent by a _Callee_ to _Dealer_.
+    # Formats:
+    #   [YIELD, INVOCATION.Request|id, Options|dict]
+    #   [YIELD, INVOCATION.Request|id, Options|dict, Arguments|list]
+    #   [YIELD, INVOCATION.Request|id, Options|dict, Arguments|list, ArgumentsKw|dict]
     class Yield < Message
       @invocation_request
       @options

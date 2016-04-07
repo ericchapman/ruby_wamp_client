@@ -42,8 +42,23 @@ message_type_lookup = {
 }
 
 message_type_define = ''
+message_lookup_define = ''
+count = 0
 message_type_lookup.each do |name, value|
+
+  # Generate the defines
   message_type_define += "      #{name} = #{value}\n"
+
+  # Generate the lookup
+  if count == 0
+    message_lookup_define += '        if'
+  else
+    message_lookup_define += '        elsif'
+  end
+  message_lookup_define += " params[0] == #{name}\n"
+  message_lookup_define += "          object = WampClient::Message::#{name.downcase.capitalize}.parse(params)\n"
+
+  count += 1
 end
 
 source_file_header = "require 'wamp_client/check'
@@ -63,7 +78,10 @@ module WampClient
 
       # @param params [Array]
       def self.parse(params)
-        Message.new
+        object = nil
+#{message_lookup_define}        end
+
+        object
       end
 
     end
@@ -258,8 +276,9 @@ messages.each do |message|
   params_lookup = {}
   params = []
   required_count = 0
+  param_formats = ''
   message[:formats].each do |format|
-    source_file += '    # ' + format + "\n"
+    param_formats += '    #   ' + format + "\n"
 
     # Generate the params
     temp_format = format.delete(' ')
@@ -298,6 +317,8 @@ messages.each do |message|
   source_file += "\n"
   source_file += '    # ' + message[:name].capitalize + "\n"
   source_file += '    # ' + message[:description] + "\n"
+  source_file += "    # Formats:\n"
+  source_file += param_formats
   source_file += '    class ' + message[:name].capitalize + " < Message\n"
 
   # Generate the local variables
@@ -399,12 +420,25 @@ messages.each do |message|
   test_file += "      expect(object.is_a?(#{class_name})).to eq(true)\n"
   test_file += "    end\n"
 
+  # Generate Global Parser Test
+  test_file += "\n    it 'globally parses the message and creates an object' do\n"
+  test_file += "      params = [#{message_type_lookup[message[:name].upcase]},#{value_array.join(',')}]\n"
+  test_file += "      object = WampClient::Message::Message.parse(params)\n\n"
+  params.each do |param|
+    if param[:required]
+      test_file += "      expect(object.#{param[:name]}).to eq(#{value_from_type(param[:type])})\n"
+    end
+  end
+  test_file += "      expect(object.is_a?(#{class_name})).to eq(true)\n"
+  test_file += "    end\n"
+
   # Generate Payload Test
   test_file += "\n    it 'generates the payload' do\n"
   test_file += "      params = [#{value_array.join(',')}]\n"
   test_file += "      object = #{class_name}.new(*params)\n"
   test_file += "      payload = object.payload\n\n"
   count = 0
+  test_file += "      expect(payload.count).to eq(#{value_array.count+1})\n"
   test_file += "      expect(payload[0]).to eq(#{message_type_lookup[message[:name].upcase]})\n"
   value_array.each do |value|
     test_file += "      expect(payload[#{count+1}]).to eq(#{value})\n"
@@ -439,6 +473,7 @@ messages.each do |message|
       test_file += "        object = #{class_name}.new(*params)\n"
       test_file += "        payload = object.payload\n\n"
       count = 0
+      test_file += "        expect(payload.count).to eq(#{value_array.count+1})\n"
       test_file += "        expect(payload[0]).to eq(#{message_type_lookup[message[:name].upcase]})\n"
       value_array.each do |value|
         test_file += "        expect(payload[#{count+1}]).to eq(#{value})\n"

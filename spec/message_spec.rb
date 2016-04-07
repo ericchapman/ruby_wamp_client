@@ -24,11 +24,21 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Hello)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [1,'string',{ test: 1 }]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.realm).to eq('string')
+      expect(object.details).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Hello)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = ['string',{ test: 1 }]
       object = WampClient::Message::Hello.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(3)
       expect(payload[0]).to eq(1)
       expect(payload[1]).to eq('string')
       expect(payload[2]).to eq({ test: 1 })
@@ -56,11 +66,21 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Welcome)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [2,123,{ test: 1 }]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.session).to eq(123)
+      expect(object.details).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Welcome)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,{ test: 1 }]
       object = WampClient::Message::Welcome.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(3)
       expect(payload[0]).to eq(2)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq({ test: 1 })
@@ -88,11 +108,21 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Abort)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [3,{ test: 1 },'string']
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.details).to eq({ test: 1 })
+      expect(object.reason).to eq('string')
+      expect(object.is_a?(WampClient::Message::Abort)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [{ test: 1 },'string']
       object = WampClient::Message::Abort.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(3)
       expect(payload[0]).to eq(3)
       expect(payload[1]).to eq({ test: 1 })
       expect(payload[2]).to eq('string')
@@ -120,11 +150,21 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Goodbye)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [6,{ test: 1 },'string']
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.details).to eq({ test: 1 })
+      expect(object.reason).to eq('string')
+      expect(object.is_a?(WampClient::Message::Goodbye)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [{ test: 1 },'string']
       object = WampClient::Message::Goodbye.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(3)
       expect(payload[0]).to eq(6)
       expect(payload[1]).to eq({ test: 1 })
       expect(payload[2]).to eq('string')
@@ -156,11 +196,23 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Error)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [8,123,123,{ test: 1 },'string']
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.request_type).to eq(123)
+      expect(object.request_request).to eq(123)
+      expect(object.details).to eq({ test: 1 })
+      expect(object.error).to eq('string')
+      expect(object.is_a?(WampClient::Message::Error)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,123,{ test: 1 },'string']
       object = WampClient::Message::Error.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(5)
       expect(payload[0]).to eq(8)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq(123)
@@ -189,6 +241,7 @@ describe WampClient::Message do
         object = WampClient::Message::Error.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(6)
         expect(payload[0]).to eq(8)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq(123)
@@ -220,6 +273,7 @@ describe WampClient::Message do
         object = WampClient::Message::Error.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(7)
         expect(payload[0]).to eq(8)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq(123)
@@ -255,11 +309,22 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Publish)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [16,123,{ test: 1 },'string']
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.request).to eq(123)
+      expect(object.options).to eq({ test: 1 })
+      expect(object.topic).to eq('string')
+      expect(object.is_a?(WampClient::Message::Publish)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,{ test: 1 },'string']
       object = WampClient::Message::Publish.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(4)
       expect(payload[0]).to eq(16)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq({ test: 1 })
@@ -287,6 +352,7 @@ describe WampClient::Message do
         object = WampClient::Message::Publish.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(5)
         expect(payload[0]).to eq(16)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq({ test: 1 })
@@ -317,6 +383,7 @@ describe WampClient::Message do
         object = WampClient::Message::Publish.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(6)
         expect(payload[0]).to eq(16)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq({ test: 1 })
@@ -349,11 +416,21 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Published)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [17,123,123]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.publish_request).to eq(123)
+      expect(object.publication).to eq(123)
+      expect(object.is_a?(WampClient::Message::Published)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,123]
       object = WampClient::Message::Published.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(3)
       expect(payload[0]).to eq(17)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq(123)
@@ -383,11 +460,22 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Subscribe)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [32,123,{ test: 1 },'string']
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.request).to eq(123)
+      expect(object.options).to eq({ test: 1 })
+      expect(object.topic).to eq('string')
+      expect(object.is_a?(WampClient::Message::Subscribe)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,{ test: 1 },'string']
       object = WampClient::Message::Subscribe.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(4)
       expect(payload[0]).to eq(32)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq({ test: 1 })
@@ -416,11 +504,21 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Subscribed)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [33,123,123]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.subscribe_request).to eq(123)
+      expect(object.subscription).to eq(123)
+      expect(object.is_a?(WampClient::Message::Subscribed)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,123]
       object = WampClient::Message::Subscribed.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(3)
       expect(payload[0]).to eq(33)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq(123)
@@ -448,11 +546,21 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Unsubscribe)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [34,123,123]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.request).to eq(123)
+      expect(object.subscribed_subscription).to eq(123)
+      expect(object.is_a?(WampClient::Message::Unsubscribe)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,123]
       object = WampClient::Message::Unsubscribe.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(3)
       expect(payload[0]).to eq(34)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq(123)
@@ -478,11 +586,20 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Unsubscribed)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [35,123]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.unsubscribe_request).to eq(123)
+      expect(object.is_a?(WampClient::Message::Unsubscribed)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123]
       object = WampClient::Message::Unsubscribed.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(2)
       expect(payload[0]).to eq(35)
       expect(payload[1]).to eq(123)
     end
@@ -511,11 +628,22 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Event)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [36,123,123,{ test: 1 }]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.subscribed_subscription).to eq(123)
+      expect(object.published_publication).to eq(123)
+      expect(object.details).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Event)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,123,{ test: 1 }]
       object = WampClient::Message::Event.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(4)
       expect(payload[0]).to eq(36)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq(123)
@@ -543,6 +671,7 @@ describe WampClient::Message do
         object = WampClient::Message::Event.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(5)
         expect(payload[0]).to eq(36)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq(123)
@@ -573,6 +702,7 @@ describe WampClient::Message do
         object = WampClient::Message::Event.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(6)
         expect(payload[0]).to eq(36)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq(123)
@@ -607,11 +737,22 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Call)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [48,123,{ test: 1 },'string']
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.request).to eq(123)
+      expect(object.options).to eq({ test: 1 })
+      expect(object.procedure).to eq('string')
+      expect(object.is_a?(WampClient::Message::Call)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,{ test: 1 },'string']
       object = WampClient::Message::Call.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(4)
       expect(payload[0]).to eq(48)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq({ test: 1 })
@@ -639,6 +780,7 @@ describe WampClient::Message do
         object = WampClient::Message::Call.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(5)
         expect(payload[0]).to eq(48)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq({ test: 1 })
@@ -669,6 +811,7 @@ describe WampClient::Message do
         object = WampClient::Message::Call.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(6)
         expect(payload[0]).to eq(48)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq({ test: 1 })
@@ -701,11 +844,21 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Result)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [50,123,{ test: 1 }]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.call_request).to eq(123)
+      expect(object.details).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Result)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,{ test: 1 }]
       object = WampClient::Message::Result.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(3)
       expect(payload[0]).to eq(50)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq({ test: 1 })
@@ -732,6 +885,7 @@ describe WampClient::Message do
         object = WampClient::Message::Result.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(4)
         expect(payload[0]).to eq(50)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq({ test: 1 })
@@ -761,6 +915,7 @@ describe WampClient::Message do
         object = WampClient::Message::Result.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(5)
         expect(payload[0]).to eq(50)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq({ test: 1 })
@@ -794,11 +949,22 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Register)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [64,123,{ test: 1 },'string']
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.request).to eq(123)
+      expect(object.options).to eq({ test: 1 })
+      expect(object.procedure).to eq('string')
+      expect(object.is_a?(WampClient::Message::Register)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,{ test: 1 },'string']
       object = WampClient::Message::Register.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(4)
       expect(payload[0]).to eq(64)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq({ test: 1 })
@@ -827,11 +993,21 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Registered)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [65,123,123]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.register_request).to eq(123)
+      expect(object.registration).to eq(123)
+      expect(object.is_a?(WampClient::Message::Registered)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,123]
       object = WampClient::Message::Registered.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(3)
       expect(payload[0]).to eq(65)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq(123)
@@ -859,11 +1035,21 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Unregister)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [66,123,123]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.request).to eq(123)
+      expect(object.registered_registration).to eq(123)
+      expect(object.is_a?(WampClient::Message::Unregister)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,123]
       object = WampClient::Message::Unregister.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(3)
       expect(payload[0]).to eq(66)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq(123)
@@ -889,11 +1075,20 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Unregistered)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [67,123]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.unregister_request).to eq(123)
+      expect(object.is_a?(WampClient::Message::Unregistered)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123]
       object = WampClient::Message::Unregistered.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(2)
       expect(payload[0]).to eq(67)
       expect(payload[1]).to eq(123)
     end
@@ -922,11 +1117,22 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Invocation)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [68,123,123,{ test: 1 }]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.request).to eq(123)
+      expect(object.registered_registration).to eq(123)
+      expect(object.details).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Invocation)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,123,{ test: 1 }]
       object = WampClient::Message::Invocation.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(4)
       expect(payload[0]).to eq(68)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq(123)
@@ -954,6 +1160,7 @@ describe WampClient::Message do
         object = WampClient::Message::Invocation.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(5)
         expect(payload[0]).to eq(68)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq(123)
@@ -984,6 +1191,7 @@ describe WampClient::Message do
         object = WampClient::Message::Invocation.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(6)
         expect(payload[0]).to eq(68)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq(123)
@@ -1016,11 +1224,21 @@ describe WampClient::Message do
       expect(object.is_a?(WampClient::Message::Yield)).to eq(true)
     end
 
+    it 'globally parses the message and creates an object' do
+      params = [70,123,{ test: 1 }]
+      object = WampClient::Message::Message.parse(params)
+
+      expect(object.invocation_request).to eq(123)
+      expect(object.options).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Yield)).to eq(true)
+    end
+
     it 'generates the payload' do
       params = [123,{ test: 1 }]
       object = WampClient::Message::Yield.new(*params)
       payload = object.payload
 
+      expect(payload.count).to eq(3)
       expect(payload[0]).to eq(70)
       expect(payload[1]).to eq(123)
       expect(payload[2]).to eq({ test: 1 })
@@ -1047,6 +1265,7 @@ describe WampClient::Message do
         object = WampClient::Message::Yield.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(4)
         expect(payload[0]).to eq(70)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq({ test: 1 })
@@ -1076,6 +1295,7 @@ describe WampClient::Message do
         object = WampClient::Message::Yield.new(*params)
         payload = object.payload
 
+        expect(payload.count).to eq(5)
         expect(payload[0]).to eq(70)
         expect(payload[1]).to eq(123)
         expect(payload[2]).to eq({ test: 1 })
