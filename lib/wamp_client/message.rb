@@ -128,7 +128,7 @@ module WampClient
       end
 
       def details
-        @details
+        @details || {}
       end
 
     end
@@ -178,7 +178,7 @@ module WampClient
       end
 
       def details
-        @details
+        @details || {}
       end
 
     end
@@ -224,7 +224,7 @@ module WampClient
       end
 
       def details
-        @details
+        @details || {}
       end
 
       def reason
@@ -274,7 +274,7 @@ module WampClient
       end
 
       def details
-        @details
+        @details || {}
       end
 
       def reason
@@ -354,7 +354,7 @@ module WampClient
       end
 
       def details
-        @details
+        @details || {}
       end
 
       def error
@@ -362,11 +362,11 @@ module WampClient
       end
 
       def arguments
-        @arguments
+        @arguments || []
       end
 
       def argumentskw
-        @argumentskw
+        @argumentskw || {}
       end
 
     end
@@ -434,7 +434,7 @@ module WampClient
       end
 
       def options
-        @options
+        @options || {}
       end
 
       def topic
@@ -442,11 +442,11 @@ module WampClient
       end
 
       def arguments
-        @arguments
+        @arguments || []
       end
 
       def argumentskw
-        @argumentskw
+        @argumentskw || {}
       end
 
     end
@@ -550,7 +550,7 @@ module WampClient
       end
 
       def options
-        @options
+        @options || {}
       end
 
       def topic
@@ -768,15 +768,15 @@ module WampClient
       end
 
       def details
-        @details
+        @details || {}
       end
 
       def publish_arguments
-        @publish_arguments
+        @publish_arguments || []
       end
 
       def publish_argumentskw
-        @publish_argumentskw
+        @publish_argumentskw || {}
       end
 
     end
@@ -844,7 +844,7 @@ module WampClient
       end
 
       def options
-        @options
+        @options || {}
       end
 
       def procedure
@@ -852,11 +852,11 @@ module WampClient
       end
 
       def arguments
-        @arguments
+        @arguments || []
       end
 
       def argumentskw
-        @argumentskw
+        @argumentskw || {}
       end
 
     end
@@ -920,15 +920,15 @@ module WampClient
       end
 
       def details
-        @details
+        @details || {}
       end
 
       def yield_arguments
-        @yield_arguments
+        @yield_arguments || []
       end
 
       def yield_argumentskw
-        @yield_argumentskw
+        @yield_argumentskw || {}
       end
 
     end
@@ -982,7 +982,7 @@ module WampClient
       end
 
       def options
-        @options
+        @options || {}
       end
 
       def procedure
@@ -1200,15 +1200,15 @@ module WampClient
       end
 
       def details
-        @details
+        @details || {}
       end
 
       def call_arguments
-        @call_arguments
+        @call_arguments || []
       end
 
       def call_argumentskw
-        @call_argumentskw
+        @call_argumentskw || {}
       end
 
     end
@@ -1272,15 +1272,15 @@ module WampClient
       end
 
       def options
-        @options
+        @options || {}
       end
 
       def arguments
-        @arguments
+        @arguments || []
       end
 
       def argumentskw
-        @argumentskw
+        @argumentskw || {}
       end
 
     end

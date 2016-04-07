@@ -376,7 +376,14 @@ messages.each do |message|
 
   # Generate the getters
   params.each do |param|
-    source_file += "\n      def #{param[:name]}\n        @#{param[:name]}\n      end\n"
+    source_file += "\n      def #{param[:name]}\n"
+    source_file += "        @#{param[:name]}"
+    if param[:type] == 'dict'
+      source_file += ' || {}'
+    elsif param[:type] == 'list'
+      source_file += ' || []'
+    end
+    source_file += "\n      end\n"
   end
 
   source_file += "\n    end\n"
