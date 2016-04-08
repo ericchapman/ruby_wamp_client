@@ -1,6 +1,6 @@
 # WampClient
 
-**UNDER DEVELOPMENT!**
+**!!!!UNDER DEVELOPMENT!!!!**
 
 Client for talking to a WAMP Router.  This is defined at
 
@@ -172,6 +172,42 @@ handler = lambda do |args, kwargs, details|
 end
 
 session.register('com.example.procedure', handler, {}, callback)
+```
+
+#### Unregister
+This method unregisters from a procedure.  The prototype for the method is as follows
+
+```ruby
+def unregister(registration, callback=nil)
+```
+
+where the parameters are defined as
+
+ - registration [Registration] - The registration object from when the registration was created
+ - callback [lambda] - The callback(registration, error, details) called to signal if the unregistration was a success
+   or not
+
+To unregister, do the following
+
+```ruby
+callback = lambda do |registration, error, details|
+  @registration = registration
+end
+
+handler = lambda do |args, kwargs, details|
+  # TODO: Do something
+end
+
+session.register('com.example.procedure', handler, {}, callback)
+
+# At some later time...
+
+session.unregister(@registration)
+
+# or ...
+
+@registration.unregister
+
 ```
 
 ## Contributing

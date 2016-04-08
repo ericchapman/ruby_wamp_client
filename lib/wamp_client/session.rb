@@ -229,6 +229,8 @@ module WampClient
               self._process_PUBLISH_error(message)
             elsif message.request_type == WampClient::Message::Types::REGISTER
               self._process_REGISTER_error(message)
+            elsif message.request_type == WampClient::Message::Types::UNREGISTER
+              self._process_UNREGISTER_error(message)
             else
               # TODO: Some Error??  Not Implemented yet
             end
@@ -245,6 +247,8 @@ module WampClient
               self._process_EVENT(message)
             elsif message.is_a? WampClient::Message::Registered
               self._process_REGISTERED(message)
+            elsif message.is_a? WampClient::Message::Unregistered
+              self._process_UNREGISTERED(message)
             elsif message.is_a? WampClient::Message::Invocation
               self._process_INVOCATION(message)
             else
@@ -359,7 +363,7 @@ module WampClient
       self.transport.send_message(unsubscribe.payload)
     end
 
-    # Processes the response to a subscribe request
+    # Processes the response to a unsubscribe request
     # @param msg [WampClient::Message::Unsubscribed] The response from the unsubscribe
     def _process_UNSUBSCRIBED(msg)
 
@@ -538,6 +542,64 @@ module WampClient
       end
 
       value
+    end
+
+    #endregion
+
+    #region Unregister Logic
+
+    # Unregisters from a procedure
+    # @param registration [Registration] The registration object from when the registration was created
+    # @param callback [lambda] The callback(registration, error, details) called to signal if the unregistration was a success or not
+    def unregister(registration, callback=nil)
+      unless is_open?
+        raise RuntimeError, "Session must be open to call 'unregister'"
+      end
+
+      self.class.check_nil('registration', registration, false)
+
+      # Create a new unsubscribe request
+      request = self._generate_id
+      self._requests[:unregister][request] = { r: registration, c: callback }
+
+      # Send the message
+      unregister = WampClient::Message::Unregister.new(request, registration.id)
+      self.transport.send_message(unregister.payload)
+    end
+
+    # Processes the response to a unregister request
+    # @param msg [WampClient::Message::Unregistered] The response from the unsubscribe
+    def _process_UNREGISTERED(msg)
+
+      r_id = msg.unregister_request
+
+      # Remove the pending unregistration, add it to the registered ones, and inform the caller
+      r = self._requests[:unregister].delete(r_id)
+      if r
+        r_s = r[:r]
+        self._registrations.delete(r_s.id)
+        c = r[:c]
+        c.call(r_s, nil, nil) if c
+      end
+
+    end
+
+
+    # Processes an error from a request
+    # @param msg [WampClient::Message::Error] The response from the subscribe
+    def _process_UNREGISTER_error(msg)
+
+      r_id = msg.request_request
+      d = msg.details
+      e = msg.error
+
+      # Remove the pending subscription and inform the caller of the failure
+      r = self._requests[:unregister].delete(r_id)
+      if r
+        c = r[:c]
+        c.call(r, e, d) if c
+      end
+
     end
 
     #endregion

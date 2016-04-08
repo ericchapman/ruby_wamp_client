@@ -203,9 +203,9 @@ describe WampClient::Session do
       request_id = session._requests[:subscribe].keys.first
 
       # Generate server response
-      subscribed = WampClient::Message::Error.new(WampClient::Message::Types::SUBSCRIBE,
-                                                  request_id, {fail:true}, 'this.failed')
-      transport.receive_message(subscribed.payload)
+      error = WampClient::Message::Error.new(WampClient::Message::Types::SUBSCRIBE,
+                                             request_id, {fail:true}, 'this.failed')
+      transport.receive_message(error.payload)
 
       expect(count).to eq(1)
 
@@ -358,9 +358,9 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      subscribed = WampClient::Message::Error.new(WampClient::Message::Types::UNSUBSCRIBE,
-                                                  @request_id, {fail:true}, 'this.failed')
-      transport.receive_message(subscribed.payload)
+      error = WampClient::Message::Error.new(WampClient::Message::Types::UNSUBSCRIBE,
+                                             @request_id, {fail:true}, 'this.failed')
+      transport.receive_message(error.payload)
 
       expect(count).to eq(1)
 
@@ -371,7 +371,6 @@ describe WampClient::Session do
       expect(session._subscriptions.count).to eq(1)
 
     end
-
 
   end
 
@@ -465,9 +464,9 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      subscribed = WampClient::Message::Error.new(WampClient::Message::Types::PUBLISH,
-                                                  @request_id, {fail:true}, 'this.failed')
-      transport.receive_message(subscribed.payload)
+      error = WampClient::Message::Error.new(WampClient::Message::Types::PUBLISH,
+                                             @request_id, {fail:true}, 'this.failed')
+      transport.receive_message(error.payload)
 
       expect(count).to eq(1)
 
@@ -557,9 +556,9 @@ describe WampClient::Session do
       request_id = session._requests[:register].keys.first
 
       # Generate server response
-      subscribed = WampClient::Message::Error.new(WampClient::Message::Types::REGISTER,
-                                                  request_id, {fail:true}, 'this.failed')
-      transport.receive_message(subscribed.payload)
+      error = WampClient::Message::Error.new(WampClient::Message::Types::REGISTER,
+                                             request_id, {fail:true}, 'this.failed')
+      transport.receive_message(error.payload)
 
       expect(count).to eq(1)
 
@@ -596,6 +595,132 @@ describe WampClient::Session do
       transport.receive_message(invocation.payload)
 
       expect(count).to eq(1)
+
+    end
+
+  end
+
+  describe 'unregister' do
+
+    before(:each) do
+      # Check Exception
+      expect { session.unregister(nil) }.to raise_exception("Session must be open to call 'unregister'")
+
+      session.join('test')
+      welcome = WampClient::Message::Welcome.new(1234, {})
+      transport.receive_message(welcome.payload)
+
+      callback = lambda do |registration, error, details|
+        @registration = registration
+      end
+
+      session.register('test.test', nil, {test: 1}, callback)
+
+      # Get the request ID
+      @request_id = session._requests[:register].keys.first
+
+      # Generate server response
+      registered = WampClient::Message::Registered.new(@request_id, 3456)
+      transport.receive_message(registered.payload)
+
+      transport.messages = []
+    end
+
+    it 'adds unregister request to the queue' do
+      session.unregister(@registration, nil)
+
+      @request_id = session._requests[:unregister].keys.first
+
+      # Check the transport messages
+      expect(transport.messages.count).to eq(1)
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::UNREGISTER)
+      expect(transport.messages[0][1]).to eq(@request_id)
+      expect(transport.messages[0][2]).to eq(@registration.id)
+
+      # Check the request dictionary
+      expect(session._requests[:unregister][@request_id]).not_to be_nil
+
+      # Check the subscriptions
+      expect(session._registrations.count).to eq(1)
+
+    end
+
+    it 'grants an unregister' do
+
+      count = 0
+      callback = lambda do |registration, error, details|
+        count += 1
+
+        expect(registration.id).to eq(@registration.id)
+        expect(error).to be_nil
+        expect(details).to be_nil
+      end
+
+      session.unregister(@registration, callback)
+
+      @request_id = session._requests[:unregister].keys.first
+
+      expect(count).to eq(0)
+
+      # Generate Server Response
+      unregistered = WampClient::Message::Unregistered.new(@request_id)
+      transport.receive_message(unregistered.payload)
+
+      # Check the request dictionary
+      expect(session._requests[:unregister].count).to eq(0)
+
+      # Check the subscriptions
+      expect(session._registrations.count).to eq(0)
+
+    end
+
+    it 'confirms an unregister' do
+
+      @registration.unregister
+
+      @request_id = session._requests[:unregister].keys.first
+
+      # Generate Server Response
+      unregistered = WampClient::Message::Unregistered.new(@request_id)
+      transport.receive_message(unregistered.payload)
+
+      # Check the request dictionary
+      expect(session._requests[:unregister].count).to eq(0)
+
+      # Check the subscriptions
+      expect(session._registrations.count).to eq(0)
+
+    end
+
+    it 'errors confirming an unregister' do
+
+      count = 0
+      callback = lambda do |registration, error, details|
+        count += 1
+
+        expect(registration).not_to be_nil
+        expect(error).to eq('this.failed')
+        expect(details).to eq({fail:true})
+      end
+
+      session.unregister(@registration, callback)
+
+      @request_id = session._requests[:unregister].keys.first
+
+      expect(count).to eq(0)
+
+      # Generate Server Response
+      error = WampClient::Message::Error.new(WampClient::Message::Types::UNREGISTER,
+                                             @request_id, {fail:true}, 'this.failed')
+      transport.receive_message(error.payload)
+
+      expect(count).to eq(1)
+
+      # Check the request dictionary
+      expect(session._requests[:unregister].count).to eq(0)
+
+      # Check the subscriptions
+      expect(session._registrations.count).to eq(1)
 
     end
 
