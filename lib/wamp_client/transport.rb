@@ -18,14 +18,7 @@ module WampClient
       # Callback when there is an error.  Parameters are
       attr_accessor :on_error
 
-      attr_accessor :type
-
-      # Parameters
-      @uri          # [String] The uri of the router
-      @headers      # [Hash] The headers to send during the connection
-      @protocol     # [String] The protocol
-      @serializer   # [WampClient::Serializer::Base] The serializer
-      @connected    # [Boolean] The connection status
+      attr_accessor :type, :uri, :headers, :protocol, :serializer, :connected
 
       # Constructor for the transport
       # @param options [Hash] The connection options.  the different options are as follows
@@ -36,14 +29,14 @@ module WampClient
       def initialize(options)
 
         # Initialize the parameters
-        @connected = false
-        @uri = options[:uri]
-        @headers = options[:headers] || {}
-        @protocol = options[:protocol] || 'wamp.2.json'
-        @serializer = options[:serializer] || WampClient::Serializer::JSONSerializer.new
+        self.connected = false
+        self.uri = options[:uri]
+        self.headers = options[:headers] || {}
+        self.protocol = options[:protocol] || 'wamp.2.json'
+        self.serializer = options[:serializer] || WampClient::Serializer::JSONSerializer.new
 
         # Add the wamp.2.json protocol header
-        @headers['Sec-WebSocket-Protocol'] = @protocol
+        self.headers['Sec-WebSocket-Protocol'] = self.protocol
 
         # Initialize callbacks
         self.on_open = nil
@@ -65,7 +58,7 @@ module WampClient
 
       # Returns true if the transport it connected
       def connected?
-        @connected
+        self.connected
       end
 
       # Sends a Message
@@ -78,43 +71,44 @@ module WampClient
 
     # This implementation uses the 'websocket-eventmachine-client' Gem.  This is the default if no transport is included
     class WebSocketTransport < Base
-      @ws
+      attr_accessor :socket
 
       def initialize(options)
         super(options)
         self.type = 'websocket'
+        self.socket = nil
       end
 
       def connect
-        @ws = WebSocket::EventMachine::Client.connect(
+        self.socket = WebSocket::EventMachine::Client.connect(
             :uri => @uri,
             :headers => @headers
         )
 
-        @ws.onopen do
-          @connected = true
+        self.socket.onopen do
+          self.connected = true
           self.on_open.call unless self.on_open.nil?
         end
 
-        @ws.onmessage do |msg, type|
-          self.on_message.call(@serializer.deserialize(msg)) unless self.on_message.nil?
+        self.socket.onmessage do |msg, type|
+          self.on_message.call(self.serializer.deserialize(msg)) unless self.on_message.nil?
         end
 
-        @ws.onclose do |code, reason|
-          @connected = false
+        self.socket.onclose do |code, reason|
+          self.connected = false
           self.on_close.call(reason) unless self.on_close.nil?
         end
       end
 
       def disconnect
-        @connected = !@ws.close  # close returns 'true' if the connection was closed immediately
+        self.connected = !self.socket.close  # close returns 'true' if the connection was closed immediately
       end
 
       def send_message(msg)
-        if @connected
-          @ws.send(@serializer.serialize(msg), {type: 'text'})
+        if self.connected
+          self.socket.send(self.serializer.serialize(msg), {type: 'text'})
         else
-          # TODO: Trigger error if attempting to send when no transport is open??
+          raise RuntimeError, "Socket must be open to call 'send_message'"
         end
       end
 

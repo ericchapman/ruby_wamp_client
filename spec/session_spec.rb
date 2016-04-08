@@ -66,6 +66,9 @@ describe WampClient::Session do
       expect(@join_count).to eq(1)
       expect(@leave_count).to eq(0)
 
+      # Check Exception
+      expect { session.join('test') }.to raise_exception("Session must be closed to call 'join'")
+
     end
 
     it 'performs a tx-hello/rx-abort' do
@@ -85,6 +88,9 @@ describe WampClient::Session do
     end
 
     it 'performs a connect then client initiated goodbye' do
+
+      # Check Exception
+      expect { session.leave('felt.like.it') }.to raise_exception("Session must be opened to call 'leave'")
 
       session.join('test')
       welcome = WampClient::Message::Welcome.new(1234, {})
@@ -142,6 +148,9 @@ describe WampClient::Session do
   describe 'subscribe' do
 
     before(:each) do
+      # Check Exception
+      expect { session.subscribe('test.test', nil, {test: 1}, nil) }.to raise_exception("Session must be opened to call 'subscribe'")
+
       session.join('test')
       welcome = WampClient::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
@@ -262,6 +271,9 @@ describe WampClient::Session do
   describe 'unsubscribe' do
 
     before(:each) do
+      # Check Exception
+      expect { session.unsubscribe(nil) }.to raise_exception("Session must be opened to call 'unsubscribe'")
+
       session.join('test')
       welcome = WampClient::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
@@ -317,6 +329,24 @@ describe WampClient::Session do
       @request_id = session._requests[:unsubscribe].keys.first
 
       expect(count).to eq(0)
+
+      # Generate Server Response
+      unsubscribed = WampClient::Message::Unsubscribed.new(@request_id)
+      transport.receive_message(unsubscribed.payload)
+
+      # Check the request dictionary
+      expect(session._requests[:unsubscribe].count).to eq(0)
+
+      # Check the subscriptions
+      expect(session._subscriptions.count).to eq(0)
+
+    end
+
+    it 'grants a request from calling object' do
+
+      @subscription.unsubscribe
+
+      @request_id = session._requests[:unsubscribe].keys.first
 
       # Generate Server Response
       unsubscribed = WampClient::Message::Unsubscribed.new(@request_id)

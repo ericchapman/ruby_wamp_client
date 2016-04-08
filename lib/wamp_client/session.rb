@@ -1,5 +1,6 @@
 require 'wamp_client/transport'
 require 'wamp_client/message'
+require 'wamp_client/check'
 
 module WampClient
 
@@ -60,6 +61,8 @@ module WampClient
   end
 
   class Session
+    include WampClient::Check
+
     # on_join callback is called when the session joins the router.  It has the following parameters
     # @param details [Hash] Object containing information about the joined session
     attr_accessor :on_join
@@ -125,8 +128,10 @@ module WampClient
     # @param realm [String] The name of the realm
     def join(realm)
       if is_open?
-        # TODO: Throw Exception??
+        raise RuntimeError, "Session must be closed to call 'join'"
       end
+
+      self.class.check_uri('realm', realm)
 
       self.realm = realm
 
@@ -142,8 +147,11 @@ module WampClient
     # @param reason [String] URI signalling the reason for leaving
     def leave(reason='wamp.close.normal', message=nil)
       unless is_open?
-        # TODO: Throw Exception??
+        raise RuntimeError, "Session must be opened to call 'leave'"
       end
+
+      self.class.check_uri('reason', reason, true)
+      self.class.check_string('message', message, true)
 
       details = {}
       details[:message] = message
@@ -230,8 +238,11 @@ module WampClient
     # @param callback [lambda] The callback(subscription, error, details) called to signal if the subscription was a success or not
     def subscribe(topic, handler, options={}, callback=nil)
       unless is_open?
-        # TODO: Throw Exception??
+        raise RuntimeError, "Session must be opened to call 'subscribe'"
       end
+
+      self.class.check_uri('topic', topic)
+      self.class.check_dict('options', options)
 
       # Create a new subscribe request
       request = self._generate_id
@@ -303,10 +314,12 @@ module WampClient
     # @param callback [lambda] The callback(subscription, error, details) called to signal if the subscription was a success or not
     def unsubscribe(subscription, callback=nil)
       unless is_open?
-        # TODO: Throw Exception??
+        raise RuntimeError, "Session must be opened to call 'unsubscribe'"
       end
 
-      # Create a new subscribe request
+      self.class.check_nil('subscription', subscription, false)
+
+      # Create a new unsubscribe request
       request = self._generate_id
       self._requests[:unsubscribe][request] = { s: subscription, c: callback }
 
@@ -343,6 +356,67 @@ module WampClient
 
       # Remove the pending subscription and inform the caller of the failure
       s = self._requests[:unsubscribe].delete(r_id)
+      if s
+        c = s[:c]
+        c.call(nil, e, d) if c
+      end
+
+    end
+
+    #endregion
+
+    #region Publish Logic
+
+    # Subscribes to a topic
+    # @param topic [String] The topic to subscribe to
+    # @param handler [lambda] The handler(args, kwargs, details) when a publish is received
+    # @param options [Hash] The options for the subscription
+    # @param callback [lambda] The callback(subscription, error, details) called to signal if the subscription was a success or not
+    def subscribe(topic, handler, options={}, callback=nil)
+      unless is_open?
+        raise RuntimeError, "Session must be opened to call 'subscribe'"
+      end
+
+      self.class.check_uri('topic', topic)
+      self.class.check_dict('options', options)
+
+      # Create a new subscribe request
+      request = self._generate_id
+      self._requests[:subscribe][request] = {t: topic, h: handler, o: options, c: callback}
+
+      # Send the message
+      subscribe = WampClient::Message::Subscribe.new(request, options, topic)
+      self.transport.send_message(subscribe.payload)
+    end
+
+    # Processes the response to a subscribe request
+    # @param msg [WampClient::Message::Subscribed] The response from the subscribe
+    def _process_subscribed_success(msg)
+
+      r_id = msg.subscribe_request
+      s_id = msg.subscription
+
+      # Remove the pending subscription, add it to the registered ones, and inform the caller
+      s = self._requests[:subscribe].delete(r_id)
+      if s
+        n_s = Subscription.new(s[:t], s[:h], s[:o], self, s_id)
+        self._subscriptions[s_id] = n_s
+        c = s[:c]
+        c.call(n_s, nil, nil) if c
+      end
+
+    end
+
+    # Processes an error from a request
+    # @param msg [WampClient::Message::Error] The response from the subscribe
+    def _process_subscribed_error(msg)
+
+      r_id = msg.request_request
+      d = msg.details
+      e = msg.error
+
+      # Remove the pending subscription and inform the caller of the failure
+      s = self._requests[:subscribe].delete(r_id)
       if s
         c = s[:c]
         c.call(nil, e, d) if c
