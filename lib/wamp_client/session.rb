@@ -235,7 +235,7 @@ module WampClient
 
     # Subscribes to a topic
     # @param topic [String] The topic to subscribe to
-    # @param handler [lambda] The handler(args, kwargs, details) when a publish is received
+    # @param handler [lambda] The handler(args, kwargs, details) when an event is received
     # @param options [Hash] The options for the subscription
     # @param callback [lambda] The callback(subscription, error, details) called to signal if the subscription was a success or not
     def subscribe(topic, handler, options={}, callback=nil)
@@ -373,7 +373,7 @@ module WampClient
     #region Publish Logic
 
     # Publishes and event to a topic
-    # @param topic [String] The topic to subscribe to
+    # @param topic [String] The topic to publish the event to
     # @param args [Array] The arguments
     # @param kwargs [Hash] The keyword arguments
     # @param options [Hash] The options for the subscription

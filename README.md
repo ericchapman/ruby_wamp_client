@@ -26,8 +26,77 @@ Or install it yourself as:
 
 
 ### Subscribe
+This method subscribes to a topic.  The prototype for the method is
+
+```ruby
+subscribe(topic, handler, options={}, callback=nil)
+```
+
+where the parameters are defined as
+
+ - topic [String] - The topic to subscribe to
+ - handler [lambda] - The handler(args, kwargs, details) when an event is received
+ - options [Hash] - The options for the subscription
+ - callback [lambda] - The callback(subscription, error, details) called to signal if the subscription was a success or not
+
+To subscribe, do the following
+
+```ruby
+handler = lambda do |args, kwargs, details|
+  # TODO: Do something
+end
+
+session.subscribe('com.example.topic', handler)
+```
+
+If you would like confirmation of the success of the subscription, do the following
+
+```ruby
+callback = lambda do |subscription, error, details|
+  # TODO: Do something
+end
+
+handler = lambda do |args, kwargs, details|
+  # TODO: Do something
+end
+
+session.subscribe('com.example.topic', handler, {}, callback)
+```
 
 ### Unsubscribe
+This method unsubscribes from a topic.  The prototype for the method is as follows
+
+```ruby
+def unsubscribe(subscription, callback=nil)
+```
+
+where the parameters are defined as
+
+ - subscription [Subscription] - The subscription object from when the subscription was created
+ - callback [lambda] - The callback(subscription, error, details) called to signal if the unsubscription was a success or not
+
+To unsubscribe, do the following
+
+```ruby
+callback = lambda do |subscription, error, details|
+  @subscription = subscription
+end
+
+handler = lambda do |args, kwargs, details|
+  # TODO: Do something
+end
+
+session.subscribe('com.example.topic', handler, {}, callback)
+
+# At some later time...
+
+session.unsubscribe(@subscription)
+
+# or ...
+
+@subscription.unsubscribe
+
+```
 
 ### Publish
 This method publishes an event to all of the subscribers.  The prototype for the method is
@@ -38,11 +107,11 @@ publish(topic, args=nil, kwargs=nil, options={}, callback=nil)
 
 where the parameters are defined as
 
- - topic [String] The topic to subscribe to
- - args [Array] The arguments
- - kwargs [Hash] The keyword arguments
- - options [Hash] The options for the subscription
- - callback [lambda] The callback(publish, error, details) is called to signal if the publish was a success or not
+ - topic [String] - The topic to publish the event to
+ - args [Array] - The arguments
+ - kwargs [Hash] - The keyword arguments
+ - options [Hash] - The options for the subscription
+ - callback [lambda] - The callback(publish, error, details) is called to signal if the publish was a success or not
 
 To publish, do the following
 
