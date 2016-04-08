@@ -157,7 +157,7 @@ module WampClient
       self._goodbye_sent = true
     end
 
-    # Generates and ID according to the specification (Section 5.1.2)
+    # Generates an ID according to the specification (Section 5.1.2)
     def _generate_id
       rand(0..9007199254740992)
     end
@@ -240,7 +240,7 @@ module WampClient
     # @param callback [lambda] The callback(subscription, error, details) called to signal if the subscription was a success or not
     def subscribe(topic, handler, options={}, callback=nil)
       unless is_open?
-        raise RuntimeError, "Session must be opened to call 'subscribe'"
+        raise RuntimeError, "Session must be open to call 'subscribe'"
       end
 
       self.class.check_uri('topic', topic)
@@ -319,7 +319,7 @@ module WampClient
     # @param callback [lambda] The callback(subscription, error, details) called to signal if the subscription was a success or not
     def unsubscribe(subscription, callback=nil)
       unless is_open?
-        raise RuntimeError, "Session must be opened to call 'unsubscribe'"
+        raise RuntimeError, "Session must be open to call 'unsubscribe'"
       end
 
       self.class.check_nil('subscription', subscription, false)

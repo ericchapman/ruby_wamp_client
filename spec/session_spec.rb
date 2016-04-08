@@ -128,7 +128,7 @@ describe WampClient::Session do
 
     before(:each) do
       # Check Exception
-      expect { session.subscribe('test.test', nil, {test: 1}, nil) }.to raise_exception("Session must be opened to call 'subscribe'")
+      expect { session.subscribe('test.test', nil, {test: 1}, nil) }.to raise_exception("Session must be open to call 'subscribe'")
 
       session.join('test')
       welcome = WampClient::Message::Welcome.new(1234, {})
@@ -136,7 +136,7 @@ describe WampClient::Session do
       transport.messages = []
     end
 
-    it 'adds a request to the request queue' do
+    it 'adds subscribe request to queue' do
       session.subscribe('test.test', nil, {test: 1}, nil)
 
       expect(session._requests[:subscribe].count).to eq(1)
@@ -157,7 +157,7 @@ describe WampClient::Session do
       expect(session._subscriptions.count).to eq(0)
     end
 
-    it 'grants a request' do
+    it 'confirms subscription' do
       count = 0
       callback = lambda do |subscription, error, details|
         count += 1
@@ -189,7 +189,7 @@ describe WampClient::Session do
 
     end
 
-    it 'errors on a request' do
+    it 'errors confirming a subscription' do
       count = 0
       callback = lambda do |subscription, error, details|
         count += 1
@@ -252,7 +252,7 @@ describe WampClient::Session do
 
     before(:each) do
       # Check Exception
-      expect { session.unsubscribe(nil) }.to raise_exception("Session must be opened to call 'unsubscribe'")
+      expect { session.unsubscribe(nil) }.to raise_exception("Session must be open to call 'unsubscribe'")
 
       session.join('test')
       welcome = WampClient::Message::Welcome.new(1234, {})
@@ -274,7 +274,7 @@ describe WampClient::Session do
       transport.messages = []
     end
 
-    it 'adds a request to the request queue' do
+    it 'adds unsubscribe request to the queue' do
       session.unsubscribe(@subscription, nil)
 
       @request_id = session._requests[:unsubscribe].keys.first
@@ -293,7 +293,7 @@ describe WampClient::Session do
 
     end
 
-    it 'grants a request' do
+    it 'grants an unsubscription' do
 
       count = 0
       callback = lambda do |subscription, error, details|
@@ -322,7 +322,7 @@ describe WampClient::Session do
 
     end
 
-    it 'grants a request from calling object' do
+    it 'confirms an unsubscription' do
 
       @subscription.unsubscribe
 
@@ -340,7 +340,7 @@ describe WampClient::Session do
 
     end
 
-    it 'errors on a request' do
+    it 'errors confirming an unsubscription' do
 
       count = 0
       callback = lambda do |subscription, error, details|
@@ -373,6 +373,94 @@ describe WampClient::Session do
     end
 
 
+  end
+
+  describe 'publish' do
+
+    before(:each) do
+      # Check Exception
+      expect { session.publish('test.topic') }.to raise_exception("Session must be open to call 'publish'")
+
+      session.join('test')
+      welcome = WampClient::Message::Welcome.new(1234, {})
+      transport.receive_message(welcome.payload)
+
+      transport.messages = []
+    end
+
+    it 'adds a publish to the publish request queue' do
+      session.publish('test.topic')
+
+      @request_id = session._requests[:publish].keys.first
+
+      # Check the transport messages
+      expect(transport.messages.count).to eq(1)
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types.PUBLISH)
+      expect(transport.messages[0][1]).to eq(@request_id)
+      expect(transport.messages[0][2]).to eq({})
+
+      # Check the request dictionary
+      expect(session._requests[:publish][@request_id]).not_to be_nil
+
+    end
+
+    it 'confirms a publish' do
+
+      count = 0
+      callback = lambda do |publication, error, details|
+        count += 1
+
+        expect(publication).not_to be_nil
+        expect(error).to be_nil
+        expect(details).to eq({:publication=>5678})
+      end
+
+      session.publish('test.topic', nil, nil, {}, callback)
+
+      @request_id = session._requests[:publish].keys.first
+
+      expect(count).to eq(0)
+
+      # Generate Server Response
+      published = WampClient::Message::Published.new(@request_id, 5678)
+      transport.receive_message(published.payload)
+
+      # Check the request dictionary
+      expect(session._requests[:publish].count).to eq(0)
+
+      expect(count).to eq(1)
+
+    end
+
+    it 'errors confirming a publish' do
+
+      count = 0
+      callback = lambda do |publication, error, details|
+        count += 1
+
+        expect(publication).not_to be_nil
+        expect(error).to eq('this.failed')
+        expect(details).to eq({fail:true})
+      end
+
+      session.publish('test.topic', nil, nil, {}, callback)
+
+      @request_id = session._requests[:publish].keys.first
+
+      expect(count).to eq(0)
+
+      # Generate Server Response
+      subscribed = WampClient::Message::Error.new(WampClient::Message::Types.PUBLISH,
+                                                  @request_id, {fail:true}, 'this.failed')
+      transport.receive_message(subscribed.payload)
+
+      expect(count).to eq(1)
+
+      # Check the request dictionary
+      expect(session._requests[:publish].count).to eq(0)
+
+    end
+    
   end
 
 
