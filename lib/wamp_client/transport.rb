@@ -5,18 +5,30 @@ module WampClient
     class Base
 
       # Callback when the socket is opened
-      attr_accessor :on_open
+      @on_open
+      def on_open(&on_open)
+        @on_open = on_open
+      end
 
       # Callback when the socket is closed.  Parameters are
       # @param reason [String] String telling the reason it was closed
-      attr_accessor :on_close
+      @on_close
+      def on_close(&on_close)
+        @on_close = on_close
+      end
 
       # Callback when a message is received.  Parameters are
       # @param msg [Array] The parsed message that was received
-      attr_accessor :on_message
+      @on_message
+      def on_message(&on_message)
+        @on_message = on_message
+      end
 
       # Callback when there is an error.  Parameters are
-      attr_accessor :on_error
+      @on_error
+      def on_error(&on_error)
+        @on_error = on_error
+      end
 
       attr_accessor :type, :uri, :headers, :protocol, :serializer, :connected
 
@@ -39,10 +51,10 @@ module WampClient
         self.headers['Sec-WebSocket-Protocol'] = self.protocol
 
         # Initialize callbacks
-        self.on_open = nil
-        self.on_close = nil
-        self.on_message = nil
-        self.on_error = nil
+        @on_open = nil
+        @on_close = nil
+        @on_message = nil
+        @on_error = nil
 
       end
 
@@ -81,22 +93,22 @@ module WampClient
 
       def connect
         self.socket = WebSocket::EventMachine::Client.connect(
-            :uri => @uri,
-            :headers => @headers
+            :uri => self.uri,
+            :headers => self.headers
         )
 
         self.socket.onopen do
           self.connected = true
-          self.on_open.call unless self.on_open.nil?
+          @on_open.call unless @on_open.nil?
         end
 
         self.socket.onmessage do |msg, type|
-          self.on_message.call(self.serializer.deserialize(msg)) unless self.on_message.nil?
+          @on_message.call(self.serializer.deserialize(msg)) unless @on_message.nil?
         end
 
         self.socket.onclose do |code, reason|
           self.connected = false
-          self.on_close.call(reason) unless self.on_close.nil?
+          @on_close.call(reason) unless @on_close.nil?
         end
       end
 

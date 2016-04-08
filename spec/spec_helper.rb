@@ -21,7 +21,7 @@ module SpecHelper
     end
 
     def receive_message(msg)
-      self.on_message.call(msg) unless self.on_message.nil?
+      @on_message.call(msg) unless @on_message.nil?
     end
 
   end

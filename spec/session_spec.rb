@@ -8,11 +8,11 @@ describe WampClient::Session do
 
     before(:each) do
       @join_count = 0
-      session.on_join = lambda do |details|
+      session.on_join do |details|
         @join_count += 1
       end
       @leave_count = 0
-      session.on_leave = lambda do |reason, details|
+      session.on_leave do |reason, details|
         @leave_count += 1
       end
     end

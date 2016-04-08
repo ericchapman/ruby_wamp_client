@@ -93,12 +93,18 @@ module WampClient
 
     # on_join callback is called when the session joins the router.  It has the following parameters
     # @param details [Hash] Object containing information about the joined session
-    attr_accessor :on_join
+    @on_join
+    def on_join(&on_join)
+      @on_join = on_join
+    end
 
     # on_leave callback is called when the session leaves the router.  It has the following attributes
     # @param reason [String] The reason the session left the router
     # @param details [Hash] Object containing information about the left session
-    attr_accessor :on_leave
+    @on_leave
+    def on_leave(&on_leave)
+      @on_leave = on_leave
+    end
 
     attr_accessor :id, :realm, :transport, :verbose
 
@@ -130,7 +136,7 @@ module WampClient
 
       # Setup Transport
       self.transport = transport
-      self.transport.on_message = lambda do |msg|
+      self.transport.on_message do |msg|
         self._receive_message(msg)
       end
 
@@ -138,8 +144,8 @@ module WampClient
       self._goodbye_sent = false
 
       # Setup session callbacks
-      self.on_join = nil
-      self.on_leave = nil
+      @on_join = nil
+      @on_leave = nil
 
     end
 
@@ -223,9 +229,9 @@ module WampClient
         # Parse the welcome message
         if message.is_a? WampClient::Message::Welcome
           self.id = message.session
-          self.on_join.call(message.details) unless self.on_join.nil?
+          @on_join.call(message.details) unless @on_join.nil?
         elsif message.is_a? WampClient::Message::Abort
-          self.on_leave.call(message.reason, message.details) unless self.on_leave.nil?
+          @on_leave.call(message.reason, message.details) unless @on_leave.nil?
         end
 
       # Wamp Session is open
@@ -244,7 +250,7 @@ module WampClient
           self.id = nil
           self.realm = nil
           self._goodbye_sent = false
-          self.on_leave.call(message.reason, message.details) unless self.on_leave.nil?
+          @on_leave.call(message.reason, message.details) unless @on_leave.nil?
 
         else
 
