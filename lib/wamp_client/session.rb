@@ -8,37 +8,37 @@ module WampClient
   WAMP_FEATURES = {
       caller: {
           features: {
-              # caller_identification: true,
+              caller_identification: true,
               ##call_timeout: true,
               ##call_canceling: true,
-              # progressive_call_results: true
+              progressive_call_results: true
           }
       },
       callee: {
           features: {
-              # caller_identification: true,
+              caller_identification: true,
               ##call_trustlevels: true,
-              # pattern_based_registration: true,
-              # shared_registration: true,
+              pattern_based_registration: true,
+              shared_registration: true,
               ##call_timeout: true,
               ##call_canceling: true,
               # progressive_call_results: true,
-              # registration_revocation: true
+              registration_revocation: true
           }
       },
       publisher: {
           features: {
-              # publisher_identification: true,
-              # subscriber_blackwhite_listing: true,
-              # publisher_exclusion: true
+              publisher_identification: true,
+              subscriber_blackwhite_listing: true,
+              publisher_exclusion: true
           }
       },
       subscriber: {
           features: {
-              # publisher_identification: true,
+              publisher_identification: true,
               ##publication_trustlevels: true,
-              # pattern_based_subscription: true,
-              # subscription_revocation: true
+              pattern_based_subscription: true,
+              subscription_revocation: true
               ##event_history: true,
           }
       }
@@ -603,7 +603,7 @@ module WampClient
             yield_msg = WampClient::Message::Yield.new(request, {}, value.args, value.kwargs)
             self._send_message(yield_msg)
           rescue Exception => e
-            error = WampClient::Message::Error.new(WampClient::Message::Types::INVOCATION, request, {}, 'wamp.runtime.error', [e.to_s])
+            error = WampClient::Message::Error.new(WampClient::Message::Types::INVOCATION, request, {}, 'wamp.error.runtime', [e.to_s])
             self._send_message(error)
           end
         end
@@ -704,11 +704,14 @@ module WampClient
     # @param msg [WampClient::Message::Result] The response from the call
     def _process_RESULT(msg)
 
-      # Remove the pending call and alert the callback
-      call = self._requests[:call].delete( msg.call_request)
-      if call
+      details = msg.details || {}
 
-        details = msg.details || {}
+      call = self._requests[:call][msg.call_request]
+
+      # Don't remove if progress is true and the options had receive_progress true
+      self._requests[:call].delete(msg.call_request) unless (details[:progress] and (call and call[:o][:receive_progress]))
+
+      if call
         details[:procedure] = call[:p] unless details[:procedure]
         details[:type] = 'call'
 

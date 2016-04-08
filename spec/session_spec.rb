@@ -654,7 +654,7 @@ describe WampClient::Session do
       expect(transport.messages[0][1]).to eq(WampClient::Message::Types::INVOCATION)
       expect(transport.messages[0][2]).to eq(7890)
       expect(transport.messages[0][3]).to eq({})
-      expect(transport.messages[0][4]).to eq('wamp.runtime.error')
+      expect(transport.messages[0][4]).to eq('wamp.error.runtime')
       expect(transport.messages[0][5]).to eq(['error'])
 
     end
@@ -863,6 +863,76 @@ describe WampClient::Session do
 
       # Check the request dictionary
       expect(session._requests[:call].count).to eq(0)
+
+    end
+
+  end
+
+  describe 'progressive_call_results' do
+
+    before(:each) do
+      session.join('test')
+      welcome = WampClient::Message::Welcome.new(1234, {})
+      transport.receive_message(welcome.payload)
+
+      transport.messages = []
+    end
+
+    it 'caller ignores (should only get the first response' do
+
+      results = []
+      session.call('test.procedure', [], {}, {}) do |result, error, details|
+        results = results + result.args
+      end
+
+      @request_id = session._requests[:call].keys.first
+
+      # Send results
+      result = WampClient::Message::Result.new(@request_id, {progress:true}, ['test'])
+      transport.receive_message(result.payload)
+      transport.receive_message(result.payload)
+      transport.receive_message(result.payload)
+      transport.receive_message(result.payload)
+
+      # Send ending
+      result = WampClient::Message::Result.new(@request_id, {}, ['test'])
+      transport.receive_message(result.payload)
+
+      expect(results.count).to eq(1)
+
+    end
+
+    it 'caller support' do
+
+      results = []
+      session.call('test.procedure', [], {}, {receive_progress: true}) do |result, error, details|
+        results = results + result.args
+      end
+
+      @request_id = session._requests[:call].keys.first
+
+      # Send results
+      result = WampClient::Message::Result.new(@request_id, {progress:true}, ['test'])
+      transport.receive_message(result.payload)
+      transport.receive_message(result.payload)
+      transport.receive_message(result.payload)
+      transport.receive_message(result.payload)
+
+      # Send ending
+      result = WampClient::Message::Result.new(@request_id, {}, ['test'])
+      transport.receive_message(result.payload)
+
+      expect(results.count).to eq(5)
+
+      # Send More to ensure they are not appended
+      result = WampClient::Message::Result.new(@request_id, {progress:true}, ['test'])
+      transport.receive_message(result.payload)
+      transport.receive_message(result.payload)
+      transport.receive_message(result.payload)
+      transport.receive_message(result.payload)
+
+      # Ensure they were not appended
+      expect(results.count).to eq(5)
 
     end
 

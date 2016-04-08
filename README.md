@@ -113,6 +113,10 @@ session.subscribe('com.example.topic', handler) do |subscription, error, details
 end
 ```
 
+Options are
+
+ - match [String] - "exact", "prefix", or "wildcard"
+
 #### Unsubscribe
 This method unsubscribes from a topic.  The prototype for the method is as follows
 
@@ -177,7 +181,15 @@ end
 
 Options are
 
- - acknowledge - set to "true" if you want the Broker to acknowledge if the Publish was successful or not
+ - acknowledge [Boolean] - set to "true" if you want the Broker to acknowledge if the Publish was successful or not
+ - disclose_me [Boolean] - "true" if the publisher would like the subscribers to know his identity
+ - exclude [Array[Integer]] - Array of session IDs to exclude
+ - exclude_authid [Array[String]] - Array of auth IDs to exclude
+ - exclude_authrole [Array[String]] - Array of auth roles to exclude
+ - eligible [Array[Integer]] - Array of session IDs to include
+ - eligible_authid [Array[String]] - Array of auth IDs to include
+ - eligible_authrole [Array[String]] - Array of auth roles to include
+ - exclude_me [Boolean] - set to "false" if you would like yourself to receive an event that you fired
 
 ### Procedure Registrations and Calls
 
@@ -216,6 +228,11 @@ session.register('com.example.procedure', handler, {}, callback) do |registratio
   # TODO: Do something
 end
 ```
+
+Options are
+
+ - match [String] - "exact", "prefix", or "wildcard"
+ - invoke [String] - "single", "roundrobin", "random", "first", "last"
 
 #### Unregister
 This method unregisters from a procedure.  The prototype for the method is as follows
@@ -269,14 +286,17 @@ where the parameters are defined as
 To call, do the following
 
 ```ruby
-callback = lambda
-
 session.call('com.example.procedure', [15], {param: value}, {}) do |result, error, details|
   # TODO: Do something
   args = result.args
   kwargs = result.kwargs
 end
 ```
+
+Options are
+
+ - receive_progress [Boolean] - "true" if you support results being able to be sent progressively
+ - disclose_me [Boolean] - "true" if the caller would like the callee to know the identity
 
 ## Contributing
 
@@ -285,6 +305,12 @@ end
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
+
+### TODOs
+
+ - progressive_call_results (callee)
+ - call_timeout
+ - call_canceling
 
 ### Testing
 

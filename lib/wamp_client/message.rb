@@ -9,6 +9,8 @@ module WampClient
       HELLO = 1
       WELCOME = 2
       ABORT = 3
+      CHALLENGE = 4
+      AUTHENTICATE = 5
       GOODBYE = 6
       ERROR = 8
       PUBLISH = 16
@@ -19,12 +21,14 @@ module WampClient
       UNSUBSCRIBED = 35
       EVENT = 36
       CALL = 48
+      CANCEL = 49
       RESULT = 50
       REGISTER = 64
       REGISTERED = 65
       UNREGISTER = 66
       UNREGISTERED = 67
       INVOCATION = 68
+      INTERRUPT = 69
       YIELD = 70
     end
 
@@ -44,6 +48,10 @@ module WampClient
           object = WampClient::Message::Welcome.parse(params)
         elsif params[0] == Types::ABORT
           object = WampClient::Message::Abort.parse(params)
+        elsif params[0] == Types::CHALLENGE
+          object = WampClient::Message::Challenge.parse(params)
+        elsif params[0] == Types::AUTHENTICATE
+          object = WampClient::Message::Authenticate.parse(params)
         elsif params[0] == Types::GOODBYE
           object = WampClient::Message::Goodbye.parse(params)
         elsif params[0] == Types::ERROR
@@ -64,6 +72,8 @@ module WampClient
           object = WampClient::Message::Event.parse(params)
         elsif params[0] == Types::CALL
           object = WampClient::Message::Call.parse(params)
+        elsif params[0] == Types::CANCEL
+          object = WampClient::Message::Cancel.parse(params)
         elsif params[0] == Types::RESULT
           object = WampClient::Message::Result.parse(params)
         elsif params[0] == Types::REGISTER
@@ -76,6 +86,8 @@ module WampClient
           object = WampClient::Message::Unregistered.parse(params)
         elsif params[0] == Types::INVOCATION
           object = WampClient::Message::Invocation.parse(params)
+        elsif params[0] == Types::INTERRUPT
+          object = WampClient::Message::Interrupt.parse(params)
         elsif params[0] == Types::YIELD
           object = WampClient::Message::Yield.parse(params)
         end
@@ -1083,6 +1095,186 @@ module WampClient
 
       def to_s
         'YIELD > ' + self.payload.to_s
+      end
+
+    end
+
+    # Challenge
+    # The "CHALLENGE" message is used with certain Authentication Methods. During authenticated session establishment, a *Router* sends a challenge message.
+    # Formats:
+    #   [CHALLENGE, AuthMethod|string, Extra|dict]
+    class Challenge < Base
+      attr_accessor :authmethod, :extra
+
+      def initialize(authmethod, extra)
+
+        self.class.check_string('authmethod', authmethod)
+        self.class.check_dict('extra', extra)
+
+        self.authmethod = authmethod
+        self.extra = extra
+
+      end
+
+      def self.type
+        Types::CHALLENGE
+      end
+
+      def self.parse(params)
+
+        self.check_gte('params list', 3, params.count)
+        self.check_equal('message type', self.type, params[0])
+
+        params.shift
+        self.new(*params)
+
+      end
+
+      def payload
+        payload = [self.class.type]
+        payload.push(self.authmethod)
+        payload.push(self.extra)
+
+        payload
+      end
+
+      def to_s
+        'CHALLENGE > ' + self.payload.to_s
+      end
+
+    end
+
+    # Authenticate
+    # The "AUTHENTICATE" message is used with certain Authentication Methods.  A *Client* having received a challenge is expected to respond by sending a signature or token.
+    # Formats:
+    #   [AUTHENTICATE, Signature|string, Extra|dict]
+    class Authenticate < Base
+      attr_accessor :signature, :extra
+
+      def initialize(signature, extra)
+
+        self.class.check_string('signature', signature)
+        self.class.check_dict('extra', extra)
+
+        self.signature = signature
+        self.extra = extra
+
+      end
+
+      def self.type
+        Types::AUTHENTICATE
+      end
+
+      def self.parse(params)
+
+        self.check_gte('params list', 3, params.count)
+        self.check_equal('message type', self.type, params[0])
+
+        params.shift
+        self.new(*params)
+
+      end
+
+      def payload
+        payload = [self.class.type]
+        payload.push(self.signature)
+        payload.push(self.extra)
+
+        payload
+      end
+
+      def to_s
+        'AUTHENTICATE > ' + self.payload.to_s
+      end
+
+    end
+
+    # Cancel
+    # The "CANCEL" message is used with the Call Canceling advanced feature.  A _Caller_ can cancel and issued call actively by sending a cancel message to the _Dealer_.
+    # Formats:
+    #   [CANCEL, CALL.Request|id, Options|dict]
+    class Cancel < Base
+      attr_accessor :call_request, :options
+
+      def initialize(call_request, options)
+
+        self.class.check_id('call_request', call_request)
+        self.class.check_dict('options', options)
+
+        self.call_request = call_request
+        self.options = options
+
+      end
+
+      def self.type
+        Types::CANCEL
+      end
+
+      def self.parse(params)
+
+        self.check_gte('params list', 3, params.count)
+        self.check_equal('message type', self.type, params[0])
+
+        params.shift
+        self.new(*params)
+
+      end
+
+      def payload
+        payload = [self.class.type]
+        payload.push(self.call_request)
+        payload.push(self.options)
+
+        payload
+      end
+
+      def to_s
+        'CANCEL > ' + self.payload.to_s
+      end
+
+    end
+
+    # Interrupt
+    # The "INTERRUPT" message is used with the Call Canceling advanced feature.  Upon receiving a cancel for a pending call, a _Dealer_ will issue an interrupt to the _Callee_.
+    # Formats:
+    #   [INTERRUPT, INVOCATION.Request|id, Options|dict]
+    class Interrupt < Base
+      attr_accessor :invocation_request, :options
+
+      def initialize(invocation_request, options)
+
+        self.class.check_id('invocation_request', invocation_request)
+        self.class.check_dict('options', options)
+
+        self.invocation_request = invocation_request
+        self.options = options
+
+      end
+
+      def self.type
+        Types::INTERRUPT
+      end
+
+      def self.parse(params)
+
+        self.check_gte('params list', 3, params.count)
+        self.check_equal('message type', self.type, params[0])
+
+        params.shift
+        self.new(*params)
+
+      end
+
+      def payload
+        payload = [self.class.type]
+        payload.push(self.invocation_request)
+        payload.push(self.options)
+
+        payload
+      end
+
+      def to_s
+        'INTERRUPT > ' + self.payload.to_s
       end
 
     end

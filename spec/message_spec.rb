@@ -1307,4 +1307,172 @@ describe WampClient::Message do
 
   end
 
+  describe WampClient::Message::Challenge do
+
+    it 'creates the message object' do
+      params = ['string',{ test: 1 }]
+      object = WampClient::Message::Challenge.new(*params)
+
+      expect(object.authmethod).to eq('string')
+      expect(object.extra).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Challenge)).to eq(true)
+    end
+
+    it 'parses the message and creates an object' do
+      params = [4,'string',{ test: 1 }]
+      object = WampClient::Message::Challenge.parse(params)
+
+      expect(object.authmethod).to eq('string')
+      expect(object.extra).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Challenge)).to eq(true)
+    end
+
+    it 'globally parses the message and creates an object' do
+      params = [4,'string',{ test: 1 }]
+      object = WampClient::Message::Base.parse(params)
+
+      expect(object.authmethod).to eq('string')
+      expect(object.extra).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Challenge)).to eq(true)
+    end
+
+    it 'generates the payload' do
+      params = ['string',{ test: 1 }]
+      object = WampClient::Message::Challenge.new(*params)
+      payload = object.payload
+
+      expect(payload.count).to eq(3)
+      expect(payload[0]).to eq(4)
+      expect(payload[1]).to eq('string')
+      expect(payload[2]).to eq({ test: 1 })
+    end
+
+  end
+
+  describe WampClient::Message::Authenticate do
+
+    it 'creates the message object' do
+      params = ['string',{ test: 1 }]
+      object = WampClient::Message::Authenticate.new(*params)
+
+      expect(object.signature).to eq('string')
+      expect(object.extra).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Authenticate)).to eq(true)
+    end
+
+    it 'parses the message and creates an object' do
+      params = [5,'string',{ test: 1 }]
+      object = WampClient::Message::Authenticate.parse(params)
+
+      expect(object.signature).to eq('string')
+      expect(object.extra).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Authenticate)).to eq(true)
+    end
+
+    it 'globally parses the message and creates an object' do
+      params = [5,'string',{ test: 1 }]
+      object = WampClient::Message::Base.parse(params)
+
+      expect(object.signature).to eq('string')
+      expect(object.extra).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Authenticate)).to eq(true)
+    end
+
+    it 'generates the payload' do
+      params = ['string',{ test: 1 }]
+      object = WampClient::Message::Authenticate.new(*params)
+      payload = object.payload
+
+      expect(payload.count).to eq(3)
+      expect(payload[0]).to eq(5)
+      expect(payload[1]).to eq('string')
+      expect(payload[2]).to eq({ test: 1 })
+    end
+
+  end
+
+  describe WampClient::Message::Cancel do
+
+    it 'creates the message object' do
+      params = [123,{ test: 1 }]
+      object = WampClient::Message::Cancel.new(*params)
+
+      expect(object.call_request).to eq(123)
+      expect(object.options).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Cancel)).to eq(true)
+    end
+
+    it 'parses the message and creates an object' do
+      params = [49,123,{ test: 1 }]
+      object = WampClient::Message::Cancel.parse(params)
+
+      expect(object.call_request).to eq(123)
+      expect(object.options).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Cancel)).to eq(true)
+    end
+
+    it 'globally parses the message and creates an object' do
+      params = [49,123,{ test: 1 }]
+      object = WampClient::Message::Base.parse(params)
+
+      expect(object.call_request).to eq(123)
+      expect(object.options).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Cancel)).to eq(true)
+    end
+
+    it 'generates the payload' do
+      params = [123,{ test: 1 }]
+      object = WampClient::Message::Cancel.new(*params)
+      payload = object.payload
+
+      expect(payload.count).to eq(3)
+      expect(payload[0]).to eq(49)
+      expect(payload[1]).to eq(123)
+      expect(payload[2]).to eq({ test: 1 })
+    end
+
+  end
+
+  describe WampClient::Message::Interrupt do
+
+    it 'creates the message object' do
+      params = [123,{ test: 1 }]
+      object = WampClient::Message::Interrupt.new(*params)
+
+      expect(object.invocation_request).to eq(123)
+      expect(object.options).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Interrupt)).to eq(true)
+    end
+
+    it 'parses the message and creates an object' do
+      params = [69,123,{ test: 1 }]
+      object = WampClient::Message::Interrupt.parse(params)
+
+      expect(object.invocation_request).to eq(123)
+      expect(object.options).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Interrupt)).to eq(true)
+    end
+
+    it 'globally parses the message and creates an object' do
+      params = [69,123,{ test: 1 }]
+      object = WampClient::Message::Base.parse(params)
+
+      expect(object.invocation_request).to eq(123)
+      expect(object.options).to eq({ test: 1 })
+      expect(object.is_a?(WampClient::Message::Interrupt)).to eq(true)
+    end
+
+    it 'generates the payload' do
+      params = [123,{ test: 1 }]
+      object = WampClient::Message::Interrupt.new(*params)
+      payload = object.payload
+
+      expect(payload.count).to eq(3)
+      expect(payload[0]).to eq(69)
+      expect(payload[1]).to eq(123)
+      expect(payload[2]).to eq({ test: 1 })
+    end
+
+  end
+
 end

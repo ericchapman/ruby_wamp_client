@@ -22,6 +22,8 @@ message_type_lookup = {
     'HELLO' => 1,
     'WELCOME' => 2,
     'ABORT' => 3,
+    'CHALLENGE' => 4,
+    'AUTHENTICATE' => 5,
     'GOODBYE' => 6,
     'ERROR' => 8,
     'PUBLISH' => 16,
@@ -32,12 +34,14 @@ message_type_lookup = {
     'UNSUBSCRIBED' => 35,
     'EVENT' => 36,
     'CALL' => 48,
+    'CANCEL' => 49,
     'RESULT' => 50,
     'REGISTER' => 64,
     'REGISTERED' => 65,
     'UNREGISTER' => 66,
     'UNREGISTERED' => 67,
     'INVOCATION' => 68,
+    'INTERRUPT' => 69,
     'YIELD' => 70
 }
 
@@ -265,6 +269,34 @@ messages = [
             '[YIELD, INVOCATION.Request|id, Options|dict]',
             '[YIELD, INVOCATION.Request|id, Options|dict, Arguments|list]',
             '[YIELD, INVOCATION.Request|id, Options|dict, Arguments|list, ArgumentsKw|dict]'
+        ]
+    },
+    {
+        name: 'challenge',
+        description: 'The "CHALLENGE" message is used with certain Authentication Methods. During authenticated session establishment, a *Router* sends a challenge message.',
+        formats: [
+            '[CHALLENGE, AuthMethod|string, Extra|dict]'
+        ]
+    },
+    {
+        name: 'authenticate',
+        description: 'The "AUTHENTICATE" message is used with certain Authentication Methods.  A *Client* having received a challenge is expected to respond by sending a signature or token.',
+        formats: [
+            '[AUTHENTICATE, Signature|string, Extra|dict]'
+        ]
+    },
+    {
+        name: 'cancel',
+        description: 'The "CANCEL" message is used with the Call Canceling advanced feature.  A _Caller_ can cancel and issued call actively by sending a cancel message to the _Dealer_.',
+        formats: [
+            '[CANCEL, CALL.Request|id, Options|dict]'
+        ]
+    },
+    {
+        name: 'interrupt',
+        description: 'The "INTERRUPT" message is used with the Call Canceling advanced feature.  Upon receiving a cancel for a pending call, a _Dealer_ will issue an interrupt to the _Callee_.',
+        formats: [
+            '[INTERRUPT, INVOCATION.Request|id, Options|dict]'
         ]
     }
 ]
