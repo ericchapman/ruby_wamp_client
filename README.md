@@ -24,13 +24,64 @@ Or install it yourself as:
 
 ## Usage
 
+### Handlers and Callbacks
+This library makes extensive use of "blocks", "lambdas", "procs", and method pointers for any returned values because
+all communication is performed asynchronously.  The library defines two types of methods
+
+ - handlers - Can be called **AT ANY TIME**.  These can be blocks, lambdas, procs, or method pointers
+ - callbacks - Only invoked in response to specific call.  These are only blocks
+
+Note that all callbacks can be set to nil, handlers however cannot since the user is explicitly setting them up.
+
+#### Handlers
+All handlers are called with the following parameters
+
+ - args [Array] - Array of arguments
+ - kwargs [Hash] - Hash of key/value arguments
+ - details [Hash] - Hash containing some details about the call
+
+Some examples of this are shown below
+
+**lambda**
+
+```ruby
+handler = lambda do |args, kwargs, details|
+    # TODO: Do Something!!
+end
+session.subscribe('com.example.topic', handler)
+```
+
+**method**
+
+```ruby
+def handler(args, kwargs, details)
+    # TODO: Do Something!!
+end
+session.subscribe('com.example.topic', method(:handler))
+```
+
+#### Callbacks
+All callbacks are called with the following parameters
+
+ - result [Object] - Some object with the result information (depends on the call)
+ - error [Hash] - Hash containing "error", "args", and "kwargs" if an error occurred
+ - details [Hash] - Hash containing some details about the call
+
+An example of this is shown below
+
+```ruby
+session.call('com.example.procedure') do |result, error, details|
+    # TODO: Do something
+end
+```
+
 ### Topic Subscriptions and Publications
 
 #### Subscribe
 This method subscribes to a topic.  The prototype for the method is
 
 ```ruby
-subscribe(topic, handler, options={}, callback=nil)
+subscribe(topic, handler, options={}, &callback)
 ```
 
 where the parameters are defined as
@@ -38,7 +89,7 @@ where the parameters are defined as
  - topic [String] - The topic to subscribe to
  - handler [lambda] - The handler(args, kwargs, details) when an event is received
  - options [Hash] - The options for the subscription
- - callback [lambda] - The callback(subscription, error, details) called to signal if the subscription was a success or not
+ - callback [block] - The callback(subscription, error, details) called to signal if the subscription was a success or not
 
 To subscribe, do the following
 
@@ -53,41 +104,37 @@ session.subscribe('com.example.topic', handler)
 If you would like confirmation of the success of the subscription, do the following
 
 ```ruby
-callback = lambda do |subscription, error, details|
-  # TODO: Do something
-end
-
 handler = lambda do |args, kwargs, details|
   # TODO: Do something
 end
 
-session.subscribe('com.example.topic', handler, {}, callback)
+session.subscribe('com.example.topic', handler) do |subscription, error, details|
+  # TODO: Do something
+end
 ```
 
 #### Unsubscribe
 This method unsubscribes from a topic.  The prototype for the method is as follows
 
 ```ruby
-def unsubscribe(subscription, callback=nil)
+def unsubscribe(subscription, &callback)
 ```
 
 where the parameters are defined as
 
  - subscription [Subscription] - The subscription object from when the subscription was created
- - callback [lambda] - The callback(subscription, error, details) called to signal if the unsubscription was a success or not
+ - callback [block] - The callback(subscription, error, details) called to signal if the unsubscription was a success or not
 
 To unsubscribe, do the following
 
 ```ruby
-callback = lambda do |subscription, error, details|
-  @subscription = subscription
-end
-
 handler = lambda do |args, kwargs, details|
   # TODO: Do something
 end
 
-session.subscribe('com.example.topic', handler, {}, callback)
+session.subscribe('com.example.topic', handler) do |subscription, error, details|
+  @subscription = subscription
+end
 
 # At some later time...
 
@@ -103,7 +150,7 @@ session.unsubscribe(@subscription)
 This method publishes an event to all of the subscribers.  The prototype for the method is
 
 ```ruby
-publish(topic, args=nil, kwargs=nil, options={}, callback=nil)
+publish(topic, args=nil, kwargs=nil, options={}, &callback)
 ```
 
 where the parameters are defined as
@@ -112,7 +159,7 @@ where the parameters are defined as
  - args [Array] - The arguments
  - kwargs [Hash] - The keyword arguments
  - options [Hash] - The options for the subscription
- - callback [lambda] - The callback(publish, error, details) is called to signal if the publish was a success or not
+ - callback [block] - The callback(publish, error, details) is called to signal if the publish was a success or not
 
 To publish, do the following
 
@@ -123,11 +170,9 @@ session.publish('com.example.topic', [15], {param: value})
 If you would like confirmation, do the following
 
 ```ruby
-callback = lambda do |publish, error, details|
+session.publish('com.example.topic', [15], {param: value}, {acknowledge: true}, callback) do |publish, error, details|
   # TODO: Do something
 end
-
-session.publish('com.example.topic', [15], {param: value}, {acknowledge: true}, callback)
 ```
 
 Options are
@@ -140,7 +185,7 @@ Options are
 This method registers to a procedure.  The prototype for the method is
 
 ```ruby
-register(procedure, handler, options={}, callback=nil)
+register(procedure, handler, options={}, &callback)
 ```
 
 where the parameters are defined as
@@ -148,7 +193,7 @@ where the parameters are defined as
  - procedure [String] - The procedure to register for
  - handler [lambda] - The handler(args, kwargs, details) when a invocation is received
  - options [Hash] - The options for the registration
- - callback [lambda] - The callback(registration, error, details) called to signal if the registration was a success or not
+ - callback [block] - The callback(registration, error, details) called to signal if the registration was a success or not
 
 To register, do the following
 
@@ -163,22 +208,20 @@ session.register('com.example.procedure', handler)
 If you would like confirmation of the success of the registration, do the following
 
 ```ruby
-callback = lambda do |registration, error, details|
-  # TODO: Do something
-end
-
 handler = lambda do |args, kwargs, details|
   # TODO: Do something
 end
 
-session.register('com.example.procedure', handler, {}, callback)
+session.register('com.example.procedure', handler, {}, callback) do |registration, error, details|
+  # TODO: Do something
+end
 ```
 
 #### Unregister
 This method unregisters from a procedure.  The prototype for the method is as follows
 
 ```ruby
-def unregister(registration, callback=nil)
+def unregister(registration, &callback)
 ```
 
 where the parameters are defined as
@@ -190,15 +233,13 @@ where the parameters are defined as
 To unregister, do the following
 
 ```ruby
-callback = lambda do |registration, error, details|
-  @registration = registration
-end
-
 handler = lambda do |args, kwargs, details|
   # TODO: Do something
 end
 
-session.register('com.example.procedure', handler, {}, callback)
+session.register('com.example.procedure', handler, {}) do |registration, error, details|
+  @registration = registration
+end
 
 # At some later time...
 
@@ -214,7 +255,7 @@ session.unregister(@registration)
 This method calls a procedure.  The prototype for the method is
 
 ```ruby
-call(procedure, args=nil, kwargs=nil, options={}, callback=nil)
+call(procedure, args=nil, kwargs=nil, options={}, &callback)
 ```
 
 where the parameters are defined as
@@ -223,16 +264,18 @@ where the parameters are defined as
  - args [Array] - The arguments
  - kwargs [Hash] - The keyword arguments
  - options [Hash] - The options for the call
- - callback [lambda] - The callback(result, error, details) called to signal if the call was a success or not
+ - callback [block] - The callback(result, error, details) called to signal if the call was a success or not
 
 To call, do the following
 
 ```ruby
-callback = lambda do |result, error, details|
-  # TODO: Do something
-end
+callback = lambda
 
-session.call('com.example.procedure', [15], {param: value}, {}, callback)
+session.call('com.example.procedure', [15], {param: value}, {}) do |result, error, details|
+  # TODO: Do something
+  args = result.args
+  kwargs = result.kwargs
+end
 ```
 
 ## Contributing

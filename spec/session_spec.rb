@@ -128,7 +128,7 @@ describe WampClient::Session do
 
     before(:each) do
       # Check Exception
-      expect { session.subscribe('test.topic', nil, {test: 1}, nil) }.to raise_exception("Session must be open to call 'subscribe'")
+      expect { session.subscribe('test.topic', nil, {test: 1}) }.to raise_exception("Session must be open to call 'subscribe'")
 
       session.join('test')
       welcome = WampClient::Message::Welcome.new(1234, {})
@@ -137,7 +137,7 @@ describe WampClient::Session do
     end
 
     it 'adds subscribe request to queue' do
-      session.subscribe('test.topic', nil, {test: 1}, nil)
+      session.subscribe('test.topic', lambda {}, {test: 1})
 
       expect(session._requests[:subscribe].count).to eq(1)
       request_id = session._requests[:subscribe].keys.first
@@ -159,16 +159,15 @@ describe WampClient::Session do
 
     it 'confirms subscription' do
       count = 0
-      callback = lambda do |subscription, error, details|
+      session.subscribe('test.topic', lambda {}, {test: 1}) do |subscription, error, details|
         count += 1
 
         expect(subscription).not_to be_nil
         expect(subscription.id).to eq(3456)
         expect(error).to be_nil
-        expect(details).to be_nil
+        expect(details).to eq({topic: 'test.topic', type: 'subscribe'})
       end
 
-      session.subscribe('test.topic', nil, {test: 1}, callback)
       request_id = session._requests[:subscribe].keys.first
 
       expect(count).to eq(0)
@@ -191,15 +190,14 @@ describe WampClient::Session do
 
     it 'errors confirming a subscription' do
       count = 0
-      callback = lambda do |subscription, error, details|
+      session.subscribe('test.topic', lambda {}, {test: 1}) do |subscription, error, details|
         count += 1
 
         expect(subscription).to be_nil
-        expect(error).to eq('this.failed')
+        expect(error[:error]).to eq('this.failed')
         expect(details).to eq({fail:true, topic: 'test.topic', type: 'subscribe'})
       end
 
-      session.subscribe('test.topic', nil, {test: 1}, callback)
       request_id = session._requests[:subscribe].keys.first
 
       # Generate server response
@@ -258,11 +256,9 @@ describe WampClient::Session do
       welcome = WampClient::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
 
-      callback = lambda do |subscription, error, details|
+      session.subscribe('test.topic', lambda {}, {test: 1}) do |subscription, error, details|
         @subscription = subscription
       end
-
-      session.subscribe('test.topic', nil, {test: 1}, callback)
 
       # Get the request ID
       @request_id = session._requests[:subscribe].keys.first
@@ -275,7 +271,7 @@ describe WampClient::Session do
     end
 
     it 'adds unsubscribe request to the queue' do
-      session.unsubscribe(@subscription, nil)
+      session.unsubscribe(@subscription)
 
       @request_id = session._requests[:unsubscribe].keys.first
 
@@ -296,15 +292,13 @@ describe WampClient::Session do
     it 'grants an unsubscription' do
 
       count = 0
-      callback = lambda do |subscription, error, details|
+      session.unsubscribe(@subscription) do |subscription, error, details|
         count += 1
 
         expect(subscription.id).to eq(@subscription.id)
         expect(error).to be_nil
-        expect(details).to be_nil
+        expect(details).to eq({topic: 'test.topic', type: 'unsubscribe'})
       end
-
-      session.unsubscribe(@subscription, callback)
 
       @request_id = session._requests[:unsubscribe].keys.first
 
@@ -343,15 +337,13 @@ describe WampClient::Session do
     it 'errors confirming an unsubscription' do
 
       count = 0
-      callback = lambda do |subscription, error, details|
+      session.unsubscribe(@subscription) do |subscription, error, details|
         count += 1
 
         expect(subscription).to be_nil
-        expect(error).to eq('this.failed')
+        expect(error[:error]).to eq('this.failed')
         expect(details).to eq({fail:true, topic: 'test.topic', type: 'unsubscribe'})
       end
-
-      session.unsubscribe(@subscription, callback)
 
       @request_id = session._requests[:unsubscribe].keys.first
 
@@ -421,15 +413,13 @@ describe WampClient::Session do
       expect(transport.messages.count).to eq(0)
 
       count = 0
-      callback = lambda do |publication, error, details|
+      session.publish('test.topic', nil, nil, {acknowledge: true}) do |publication, error, details|
         count += 1
 
         expect(publication).not_to be_nil
         expect(error).to be_nil
-        expect(details).to eq({:publication=>5678})
+        expect(details).to eq({topic: 'test.topic', type: 'publish', publication: 5678})
       end
-
-      session.publish('test.topic', nil, nil, {acknowledge: true}, callback)
 
       @request_id = session._requests[:publish].keys.first
 
@@ -449,15 +439,13 @@ describe WampClient::Session do
     it 'errors confirming a publish' do
 
       count = 0
-      callback = lambda do |publication, error, details|
+      session.publish('test.topic', nil, nil, {acknowledge: true}) do |publication, error, details|
         count += 1
 
         expect(publication).to be_nil
-        expect(error).to eq('this.failed')
+        expect(error[:error]).to eq('this.failed')
         expect(details).to eq({fail:true, topic: 'test.topic', type: 'publish'})
       end
-
-      session.publish('test.topic', nil, nil, {acknowledge: true}, callback)
 
       @request_id = session._requests[:publish].keys.first
 
@@ -481,7 +469,7 @@ describe WampClient::Session do
 
     before(:each) do
       # Check Exception
-      expect { session.register('test.procedure', nil, {test: 1}, nil) }.to raise_exception("Session must be open to call 'register'")
+      expect { session.register('test.procedure', nil, {test: 1}) }.to raise_exception("Session must be open to call 'register'")
 
       session.join('test')
       welcome = WampClient::Message::Welcome.new(1234, {})
@@ -490,7 +478,7 @@ describe WampClient::Session do
     end
 
     it 'adds register request to queue' do
-      session.register('test.procedure', nil, {test: 1}, nil)
+      session.register('test.procedure', lambda {}, {test: 1})
 
       expect(session._requests[:register].count).to eq(1)
       request_id = session._requests[:register].keys.first
@@ -512,16 +500,15 @@ describe WampClient::Session do
 
     it 'confirms register' do
       count = 0
-      callback = lambda do |registration, error, details|
+
+      session.register('test.procedure', lambda {}, {test: 1}) do |registration, error, details|
         count += 1
 
         expect(registration).not_to be_nil
         expect(registration.id).to eq(3456)
         expect(error).to be_nil
-        expect(details).to be_nil
+        expect(details).to eq({procedure: 'test.procedure', type: 'register'})
       end
-
-      session.register('test.procedure', nil, {test: 1}, callback)
       request_id = session._requests[:register].keys.first
 
       expect(count).to eq(0)
@@ -544,15 +531,14 @@ describe WampClient::Session do
 
     it 'errors confirming a registration' do
       count = 0
-      callback = lambda do |registration, error, details|
+      session.register('test.procedure', lambda {}, {test: 1}) do |registration, error, details|
         count += 1
 
         expect(registration).to be_nil
-        expect(error).to eq('this.failed')
+        expect(error[:error]).to eq('this.failed')
         expect(details).to eq({fail:true, procedure: 'test.procedure', type: 'register'})
       end
 
-      session.register('test.procedure', nil, {test: 1}, callback)
       request_id = session._requests[:register].keys.first
 
       # Generate server response
@@ -574,7 +560,7 @@ describe WampClient::Session do
   describe 'invocation' do
     before(:each) do
       # Check Exception
-      expect { session.register('test.procedure', nil, {test: 1}, nil) }.to raise_exception("Session must be open to call 'register'")
+      expect { session.register('test.procedure', nil, {test: 1}) }.to raise_exception("Session must be open to call 'register'")
 
       session.join('test')
       welcome = WampClient::Message::Welcome.new(1234, {})
@@ -684,11 +670,9 @@ describe WampClient::Session do
       welcome = WampClient::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
 
-      callback = lambda do |registration, error, details|
+      session.register('test.procedure', lambda {}, {test: 1}) do |registration, error, details|
         @registration = registration
       end
-
-      session.register('test.procedure', nil, {test: 1}, callback)
 
       # Get the request ID
       @request_id = session._requests[:register].keys.first
@@ -701,7 +685,7 @@ describe WampClient::Session do
     end
 
     it 'adds unregister request to the queue' do
-      session.unregister(@registration, nil)
+      session.unregister(@registration)
 
       @request_id = session._requests[:unregister].keys.first
 
@@ -722,15 +706,13 @@ describe WampClient::Session do
     it 'grants an unregister' do
 
       count = 0
-      callback = lambda do |registration, error, details|
+      session.unregister(@registration) do |registration, error, details|
         count += 1
 
         expect(registration.id).to eq(@registration.id)
         expect(error).to be_nil
-        expect(details).to be_nil
+        expect(details).to eq({procedure: 'test.procedure', type: 'unregister'})
       end
-
-      session.unregister(@registration, callback)
 
       @request_id = session._requests[:unregister].keys.first
 
@@ -769,15 +751,13 @@ describe WampClient::Session do
     it 'errors confirming an unregister' do
 
       count = 0
-      callback = lambda do |registration, error, details|
+      session.unregister(@registration) do |registration, error, details|
         count += 1
 
         expect(registration).to be_nil
-        expect(error).to eq('this.failed')
+        expect(error[:error]).to eq('this.failed')
         expect(details).to eq({fail:true, procedure:'test.procedure', type: 'unregister'})
       end
-
-      session.unregister(@registration, callback)
 
       @request_id = session._requests[:unregister].keys.first
 
@@ -834,17 +814,15 @@ describe WampClient::Session do
       expect(transport.messages.count).to eq(0)
 
       count = 0
-      callback = lambda do |result, error, details|
+      session.call('test.procedure') do |result, error, details|
         count += 1
 
         expect(result).not_to be_nil
         expect(result.args).to eq(['test'])
         expect(result.kwargs).to eq({test:true})
         expect(error).to be_nil
-        expect(details).to eq({})
+        expect(details).to eq({procedure: 'test.procedure', type: 'call'})
       end
-
-      session.call('test.procedure', nil, nil, {}, callback)
 
       @request_id = session._requests[:call].keys.first
 
@@ -864,15 +842,13 @@ describe WampClient::Session do
     it 'errors calling a procedure' do
 
       count = 0
-      callback = lambda do |result, error, details|
+      session.call('test.procedure', nil, nil, {acknowledge: true}) do |result, error, details|
         count += 1
 
         expect(result).to be_nil
-        expect(error).to eq('this.failed')
+        expect(error[:error]).to eq('this.failed')
         expect(details).to eq({fail:true, procedure: 'test.procedure', type: 'call'})
       end
-
-      session.call('test.procedure', nil, nil, {acknowledge: true}, callback)
 
       @request_id = session._requests[:call].keys.first
 

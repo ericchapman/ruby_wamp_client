@@ -192,6 +192,16 @@ module WampClient
       rand(0..9007199254740992)
     end
 
+    # Converts and error message to a hash
+    # @param msg [WampClient::Message::Error]
+    def _error_to_hash(msg)
+      {
+          error: msg.error,
+          args: msg.arguments,
+          kwargs: msg.argumentskw
+      }
+    end
+
     # Sends a message
     # @param msg [WampClient::Message::Base]
     def _send_message(msg)
@@ -290,14 +300,15 @@ module WampClient
     # @param topic [String] The topic to subscribe to
     # @param handler [lambda] The handler(args, kwargs, details) when an event is received
     # @param options [Hash] The options for the subscription
-    # @param callback [lambda] The callback(subscription, error, details) called to signal if the subscription was a success or not
-    def subscribe(topic, handler, options={}, callback=nil)
+    # @param callback [block] The callback(subscription, error) called to signal if the subscription was a success or not
+    def subscribe(topic, handler, options={}, &callback)
       unless is_open?
         raise RuntimeError, "Session must be open to call 'subscribe'"
       end
 
       self.class.check_uri('topic', topic)
       self.class.check_dict('options', options)
+      self.class.check_nil('handler', handler, false)
 
       # Create a new subscribe request
       request = self._generate_id
@@ -312,16 +323,18 @@ module WampClient
     # @param msg [WampClient::Message::Subscribed] The response from the subscribe
     def _process_SUBSCRIBED(msg)
 
-      r_id = msg.subscribe_request
-      s_id = msg.subscription
-
       # Remove the pending subscription, add it to the registered ones, and inform the caller
-      s = self._requests[:subscribe].delete(r_id)
+      s = self._requests[:subscribe].delete(msg.subscribe_request)
       if s
-        n_s = Subscription.new(s[:t], s[:h], s[:o], self, s_id)
-        self._subscriptions[s_id] = n_s
+
+        details = {}
+        details[:topic] = s[:t] unless details[:topic]
+        details[:type] = 'subscribe'
+
+        n_s = Subscription.new(s[:t], s[:h], s[:o], self, msg.subscription)
+        self._subscriptions[msg.subscription] = n_s
         c = s[:c]
-        c.call(n_s, nil, nil) if c
+        c.call(n_s, nil, details) if c
       end
 
     end
@@ -330,17 +343,16 @@ module WampClient
     # @param msg [WampClient::Message::Error] The response from the subscribe
     def _process_SUBSCRIBE_error(msg)
 
-      r_id = msg.request_request
-      d = msg.details 
-      e = msg.error
-
       # Remove the pending subscription and inform the caller of the failure
-      s = self._requests[:subscribe].delete(r_id)
+      s = self._requests[:subscribe].delete(msg.request_request)
       if s
-        d[:topic] = s[:t]
-        d[:type] = 'subscribe'
+
+        details = msg.details || {}
+        details[:topic] = s[:t] unless details[:topic]
+        details[:type] = 'subscribe'
+
         c = s[:c]
-        c.call(nil, e, d) if c
+        c.call(nil, self._error_to_hash(msg), details) if c
       end
 
     end
@@ -349,16 +361,14 @@ module WampClient
     # @param msg [WampClient::Message::Event] An event that was published
     def _process_EVENT(msg)
 
-      s_id = msg.subscribed_subscription
-      p_id = msg.published_publication
-      details = msg.details 
-      args = msg.publish_arguments
-      kwargs = msg.publish_argumentskw
+      args = msg.publish_arguments || []
+      kwargs = msg.publish_argumentskw || {}
 
-      details[:publication] = p_id
-
-      s = self._subscriptions[s_id]
+      s = self._subscriptions[msg.subscribed_subscription]
       if s
+        details = msg.details || {}
+        details[:publication] = msg.published_publication
+
         h = s.handler
         h.call(args, kwargs, details) if h
       end
@@ -371,8 +381,8 @@ module WampClient
 
     # Unsubscribes from a subscription
     # @param subscription [Subscription] The subscription object from when the subscription was created
-    # @param callback [lambda] The callback(subscription, error, details) called to signal if the subscription was a success or not
-    def unsubscribe(subscription, callback=nil)
+    # @param callback [block] The callback(subscription, error, details) called to signal if the subscription was a success or not
+    def unsubscribe(subscription, &callback)
       unless is_open?
         raise RuntimeError, "Session must be open to call 'unsubscribe'"
       end
@@ -392,15 +402,18 @@ module WampClient
     # @param msg [WampClient::Message::Unsubscribed] The response from the unsubscribe
     def _process_UNSUBSCRIBED(msg)
 
-      r_id = msg.unsubscribe_request
-
       # Remove the pending unsubscription, add it to the registered ones, and inform the caller
-      s = self._requests[:unsubscribe].delete(r_id)
+      s = self._requests[:unsubscribe].delete(msg.unsubscribe_request)
       if s
         n_s = s[:s]
         self._subscriptions.delete(n_s.id)
+
+        details = {}
+        details[:topic] = s[:s].topic
+        details[:type] = 'unsubscribe'
+
         c = s[:c]
-        c.call(n_s, nil, nil) if c
+        c.call(n_s, nil, details) if c
       end
 
     end
@@ -410,17 +423,16 @@ module WampClient
     # @param msg [WampClient::Message::Error] The response from the subscribe
     def _process_UNSUBSCRIBE_error(msg)
 
-      r_id = msg.request_request
-      d = msg.details 
-      e = msg.error
-
       # Remove the pending subscription and inform the caller of the failure
-      s = self._requests[:unsubscribe].delete(r_id)
+      s = self._requests[:unsubscribe].delete(msg.request_request)
       if s
-        d[:topic] = s[:s].topic
-        d[:type] = 'unsubscribe'
+
+        details = msg.details || {}
+        details[:topic] = s[:s].topic unless details[:topic]
+        details[:type] = 'unsubscribe'
+
         c = s[:c]
-        c.call(nil, e, d) if c
+        c.call(nil, self._error_to_hash(msg), details) if c
       end
 
     end
@@ -434,8 +446,8 @@ module WampClient
     # @param args [Array] The arguments
     # @param kwargs [Hash] The keyword arguments
     # @param options [Hash] The options for the publish
-    # @param callback [lambda] The callback(publish, error, details) called to signal if the publish was a success or not
-    def publish(topic, args=nil, kwargs=nil, options={}, callback=nil)
+    # @param callback [block] The callback(publish, error, details) called to signal if the publish was a success or not
+    def publish(topic, args=nil, kwargs=nil, options={}, &callback)
       unless is_open?
         raise RuntimeError, "Session must be open to call 'publish'"
       end
@@ -458,14 +470,17 @@ module WampClient
     # @param msg [WampClient::Message::Published] The response from the subscribe
     def _process_PUBLISHED(msg)
 
-      r_id = msg.publish_request
-      p_id = msg.publication
-
       # Remove the pending publish and alert the callback
-      s = self._requests[:publish].delete(r_id)
-      if s
-        c = s[:c]
-        c.call(s, nil, {publication: p_id}) if c
+      p = self._requests[:publish].delete(msg.publish_request)
+      if p
+
+        details = {}
+        details[:topic] = p[:t]
+        details[:type] = 'publish'
+        details[:publication] = msg.publication
+
+        c = p[:c]
+        c.call(p, nil, details) if c
       end
 
     end
@@ -474,17 +489,16 @@ module WampClient
     # @param msg [WampClient::Message::Error] The response from the subscribe
     def _process_PUBLISH_error(msg)
 
-      r_id = msg.request_request
-      d = msg.details 
-      e = msg.error
-
       # Remove the pending publish and inform the caller of the failure
-      s = self._requests[:publish].delete(r_id)
+      s = self._requests[:publish].delete(msg.request_request)
       if s
-        d[:topic] = s[:t]
-        d[:type] = 'publish'
+
+        details = msg.details || {}
+        details[:topic] = s[:t] unless details[:topic]
+        details[:type] = 'publish'
+
         c = s[:c]
-        c.call(nil, e, d) if c
+        c.call(nil, self._error_to_hash(msg), details) if c
       end
 
     end
@@ -497,14 +511,15 @@ module WampClient
     # @param procedure [String] The procedure to register for
     # @param handler [lambda] The handler(args, kwargs, details) when a invocation is received
     # @param options [Hash] The options for the registration
-    # @param callback [lambda] The callback(registration, error, details) called to signal if the registration was a success or not
-    def register(procedure, handler, options={}, callback=nil)
+    # @param callback [block] The callback(registration, error, details) called to signal if the registration was a success or not
+    def register(procedure, handler, options={}, &callback)
       unless is_open?
         raise RuntimeError, "Session must be open to call 'register'"
       end
 
       self.class.check_uri('procedure', procedure)
       self.class.check_dict('options', options)
+      self.class.check_nil('handler', handler, false)
 
       # Create a new registration request
       request = self._generate_id
@@ -519,16 +534,18 @@ module WampClient
     # @param msg [WampClient::Message::Registered] The response from the subscribe
     def _process_REGISTERED(msg)
 
-      request_id = msg.register_request
-      registration_id = msg.registration
-
       # Remove the pending subscription, add it to the registered ones, and inform the caller
-      r = self._requests[:register].delete(request_id)
+      r = self._requests[:register].delete(msg.register_request)
       if r
-        n_r = Registration.new(r[:p], r[:h], r[:o], self, registration_id)
-        self._registrations[registration_id] = n_r
+        n_r = Registration.new(r[:p], r[:h], r[:o], self, msg.registration)
+        self._registrations[msg.registration] = n_r
+
+        details = {}
+        details[:procedure] = r[:p]
+        details[:type] = 'register'
+
         c = r[:c]
-        c.call(n_r, nil, nil) if c
+        c.call(n_r, nil, details) if c
       end
 
     end
@@ -537,17 +554,16 @@ module WampClient
     # @param msg [WampClient::Message::Error] The response from the register
     def _process_REGISTER_error(msg)
 
-      r_id = msg.request_request
-      d = msg.details 
-      e = msg.error
-
       # Remove the pending registration and inform the caller of the failure
-      r = self._requests[:register].delete(r_id)
+      r = self._requests[:register].delete(msg.request_request)
       if r
-        d[:procedure] = r[:p]
-        d[:type] = 'register'
+
+        details = msg.details || {}
+        details[:procedure] = r[:p] unless details[:procedure]
+        details[:type] = 'register'
+
         c = r[:c]
-        c.call(nil, e, d) if c
+        c.call(nil, self._error_to_hash(msg), details) if c
       end
 
     end
@@ -557,14 +573,13 @@ module WampClient
     def _process_INVOCATION(msg)
 
       request = msg.request
-      registration = msg.registered_registration
-      details = msg.details 
-      args = msg.call_arguments
-      kwargs = msg.call_argumentskw
+      args = msg.call_arguments || []
+      kwargs = msg.call_argumentskw || {}
 
+      details = msg.details || {}
       details[:request] = request
 
-      r = self._registrations[registration]
+      r = self._registrations[msg.registered_registration]
       if r
         h = r.handler
         if h
@@ -595,8 +610,8 @@ module WampClient
 
     # Unregisters from a procedure
     # @param registration [Registration] The registration object from when the registration was created
-    # @param callback [lambda] The callback(registration, error, details) called to signal if the unregistration was a success or not
-    def unregister(registration, callback=nil)
+    # @param callback [block] The callback(registration, error, details) called to signal if the unregistration was a success or not
+    def unregister(registration, &callback)
       unless is_open?
         raise RuntimeError, "Session must be open to call 'unregister'"
       end
@@ -616,15 +631,18 @@ module WampClient
     # @param msg [WampClient::Message::Unregistered] The response from the unsubscribe
     def _process_UNREGISTERED(msg)
 
-      r_id = msg.unregister_request
-
       # Remove the pending unregistration, add it to the registered ones, and inform the caller
-      r = self._requests[:unregister].delete(r_id)
+      r = self._requests[:unregister].delete(msg.unregister_request)
       if r
         r_s = r[:r]
         self._registrations.delete(r_s.id)
+
+        details = {}
+        details[:procedure] = r_s.procedure
+        details[:type] = 'unregister'
+
         c = r[:c]
-        c.call(r_s, nil, nil) if c
+        c.call(r_s, nil, details) if c
       end
 
     end
@@ -633,17 +651,16 @@ module WampClient
     # @param msg [WampClient::Message::Error] The response from the subscribe
     def _process_UNREGISTER_error(msg)
 
-      r_id = msg.request_request
-      d = msg.details 
-      e = msg.error
-
       # Remove the pending subscription and inform the caller of the failure
-      r = self._requests[:unregister].delete(r_id)
+      r = self._requests[:unregister].delete(msg.request_request)
       if r
-        d[:procedure] = r[:r].procedure
-        d[:type] = 'unregister'
+
+        details = msg.details || {}
+        details[:procedure] = r[:r].procedure unless details[:procedure]
+        details[:type] = 'unregister'
+
         c = r[:c]
-        c.call(nil, e, d) if c
+        c.call(nil, self._error_to_hash(msg), details) if c
       end
 
     end
@@ -657,8 +674,8 @@ module WampClient
     # @param args [Array] The arguments
     # @param kwargs [Hash] The keyword arguments
     # @param options [Hash] The options for the call
-    # @param callback [lambda] The callback(result, error, details) called to signal if the call was a success or not
-    def call(procedure, args=nil, kwargs=nil, options={}, callback=nil)
+    # @param callback [block] The callback(result, error, details) called to signal if the call was a success or not
+    def call(procedure, args=nil, kwargs=nil, options={}, &callback)
       unless is_open?
         raise RuntimeError, "Session must be open to call 'call'"
       end
@@ -681,16 +698,16 @@ module WampClient
     # @param msg [WampClient::Message::Result] The response from the call
     def _process_RESULT(msg)
 
-      r_id = msg.call_request
-      args = msg.yield_arguments
-      kwargs = msg.yield_argumentskw
-      details = msg.details
-
       # Remove the pending call and alert the callback
-      call = self._requests[:call].delete(r_id)
+      call = self._requests[:call].delete( msg.call_request)
       if call
+
+        details = msg.details || {}
+        details[:procedure] = call[:p] unless details[:procedure]
+        details[:type] = 'call'
+
         c = call[:c]
-        c.call(CallResult.new(args, kwargs), nil, details) if c
+        c.call(CallResult.new(msg.yield_arguments, msg.yield_argumentskw), nil, details) if c
       end
 
     end
@@ -699,17 +716,16 @@ module WampClient
     # @param msg [WampClient::Message::Error] The response from the call
     def _process_CALL_error(msg)
 
-      r_id = msg.request_request
-      d = msg.details 
-      e = msg.error
-
       # Remove the pending publish and inform the caller of the failure
-      call = self._requests[:call].delete(r_id)
+      call = self._requests[:call].delete(msg.request_request)
       if call
-        d[:procedure] = call[:p]
-        d[:type] = 'call'
+
+        details = msg.details || {}
+        details[:procedure] = call[:p] unless details[:procedure]
+        details[:type] = 'call'
+
         c = call[:c]
-        c.call(nil, e, d) if c
+        c.call(nil, self._error_to_hash(msg), details) if c
       end
 
     end
