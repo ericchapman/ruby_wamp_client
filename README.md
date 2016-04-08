@@ -210,6 +210,31 @@ session.unregister(@registration)
 
 ```
 
+#### Call
+This method calls a procedure.  The prototype for the method is
+
+```ruby
+call(procedure, args=nil, kwargs=nil, options={}, callback=nil)
+```
+
+where the parameters are defined as
+
+ - procedure [String] - The procedure to invoke
+ - args [Array] - The arguments
+ - kwargs [Hash] - The keyword arguments
+ - options [Hash] - The options for the call
+ - callback [lambda] - The callback(result, error, details) called to signal if the call was a success or not
+
+To call, do the following
+
+```ruby
+callback = lambda do |result, error, details|
+  # TODO: Do something
+end
+
+session.call('com.example.procedure', [15], {param: value}, {}, callback)
+```
+
 ## Contributing
 
 1. Fork it ( https://github.com/ericchapman/ruby_wamp_client )
