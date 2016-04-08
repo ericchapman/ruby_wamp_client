@@ -389,7 +389,7 @@ describe WampClient::Session do
     end
 
     it 'adds a publish to the publish request queue' do
-      session.publish('test.topic')
+      session.publish('test.topic', nil, nil, {acknowledge:true})
 
       @request_id = session._requests[:publish].keys.first
 
@@ -397,14 +397,29 @@ describe WampClient::Session do
       expect(transport.messages.count).to eq(1)
       expect(transport.messages[0][0]).to eq(WampClient::Message::Types.PUBLISH)
       expect(transport.messages[0][1]).to eq(@request_id)
-      expect(transport.messages[0][2]).to eq({})
+      expect(transport.messages[0][2]).to eq({acknowledge:true})
 
       # Check the request dictionary
       expect(session._requests[:publish][@request_id]).not_to be_nil
 
     end
 
-    it 'confirms a publish' do
+    it 'publishes with no confirmation' do
+
+      expect(transport.messages.count).to eq(0)
+
+      session.publish('test.topic', nil, nil, {})
+
+      expect(transport.messages.count).to eq(1)
+
+      # Check the request dictionary
+      expect(session._requests[:publish].count).to eq(0)
+
+    end
+
+    it 'publishes with confirmation' do
+
+      expect(transport.messages.count).to eq(0)
 
       count = 0
       callback = lambda do |publication, error, details|
@@ -415,7 +430,7 @@ describe WampClient::Session do
         expect(details).to eq({:publication=>5678})
       end
 
-      session.publish('test.topic', nil, nil, {}, callback)
+      session.publish('test.topic', nil, nil, {acknowledge: true}, callback)
 
       @request_id = session._requests[:publish].keys.first
 
@@ -443,7 +458,7 @@ describe WampClient::Session do
         expect(details).to eq({fail:true})
       end
 
-      session.publish('test.topic', nil, nil, {}, callback)
+      session.publish('test.topic', nil, nil, {acknowledge: true}, callback)
 
       @request_id = session._requests[:publish].keys.first
 
@@ -460,7 +475,7 @@ describe WampClient::Session do
       expect(session._requests[:publish].count).to eq(0)
 
     end
-    
+
   end
 
 

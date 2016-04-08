@@ -377,7 +377,7 @@ module WampClient
     # @param args [Array] The arguments
     # @param kwargs [Hash] The keyword arguments
     # @param options [Hash] The options for the subscription
-    # @param callback [lambda] The callback(subscription, error, details) called to signal if the subscription was a success or not
+    # @param callback [lambda] The callback(publish, error, details) called to signal if the publish was a success or not
     def publish(topic, args=nil, kwargs=nil, options={}, callback=nil)
       unless is_open?
         raise RuntimeError, "Session must be open to call 'publish'"
@@ -390,7 +390,7 @@ module WampClient
 
       # Create a new publish request
       request = self._generate_id
-      self._requests[:publish][request] = {t: topic, a: args, k: kwargs, o: options, c: callback}
+      self._requests[:publish][request] = {t: topic, a: args, k: kwargs, o: options, c: callback} if options[:acknowledge]
 
       # Send the message
       publish = WampClient::Message::Publish.new(request, options, topic, args, kwargs)

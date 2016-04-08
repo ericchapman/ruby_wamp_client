@@ -24,7 +24,45 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+
+### Subscribe
+
+### Unsubscribe
+
+### Publish
+This method publishes an event to all of the subscribers.  The prototype for the method is
+
+```ruby
+publish(topic, args=nil, kwargs=nil, options={}, callback=nil)
+```
+
+where the parameters are defined as
+
+ - topic [String] The topic to subscribe to
+ - args [Array] The arguments
+ - kwargs [Hash] The keyword arguments
+ - options [Hash] The options for the subscription
+ - callback [lambda] The callback(publish, error, details) is called to signal if the publish was a success or not
+
+To publish, do the following
+
+```ruby
+session.publish('com.example.topic', [15], {param: value})
+```
+
+If you would like confirmation, do the following
+
+```ruby
+callback = lambda do |publish, error, details|
+  # TODO: Do something
+end
+
+session.publish('com.example.topic', [15], {param: value}, {acknowledge: true}, callback)
+```
+
+Options are
+
+ - acknowledge - set to "true" if you want the Broker to acknowledge if the Publish was successful or not
 
 ## Contributing
 
