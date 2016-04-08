@@ -106,19 +106,33 @@ module WampClient
       @on_leave = on_leave
     end
 
-    attr_accessor :id, :realm, :transport, :verbose
+    # on_challenge callback is called when an authentication challenge is received from the router.  It has the
+    # following attributes
+    # @param authmethod [String] The type of auth being requested
+    # @param extra [Hash] Hash containing additional information
+    # @return signature, extras
+    @on_challenge
+    def on_challenge(&on_challenge)
+      @on_challenge = on_challenge
+    end
+
+    attr_accessor :id, :realm, :transport, :verbose, :options
 
     # Private attributes
     attr_accessor :_goodbye_sent, :_requests, :_subscriptions, :_registrations
 
     # Constructor
     # @param transport [WampClient::Transport::Base] The transport that the session will use
-    def initialize(transport)
+    # @param options [Hash] Hash containing different session options
+    # @option options [String] :authid The authentication ID
+    # @option options [Array] :authmethods Different auth methods that this client supports
+    def initialize(transport, options={})
 
       # Parameters
       self.id = nil
       self.realm = nil
       self.verbose = false
+      self.options = options || {}
 
       # Outstanding Requests
       self._requests = {
@@ -168,6 +182,8 @@ module WampClient
       details = {}
       details[:roles] = WAMP_FEATURES
       details[:agent] = "Ruby-WampClient-#{WampClient::VERSION}"
+      details[:authid] = self.options[:authid]
+      details[:authmethods] = self.options[:authmethods]
 
       # Send Hello message
       hello = WampClient::Message::Hello.new(realm, details)
@@ -230,6 +246,21 @@ module WampClient
         if message.is_a? WampClient::Message::Welcome
           self.id = message.session
           @on_join.call(message.details) unless @on_join.nil?
+        elsif message.is_a? WampClient::Message::Challenge
+
+          if @on_challenge
+            signature, extra = @on_challenge.call(message.authmethod, message.extra)
+          else
+            signature = nil
+            extra = nil
+          end
+
+          signature ||= ''
+          extra ||= {}
+
+          authenticate = WampClient::Message::Authenticate.new(signature, extra)
+          self._send_message(authenticate)
+
         elsif message.is_a? WampClient::Message::Abort
           @on_leave.call(message.reason, message.details) unless @on_leave.nil?
         end
@@ -334,7 +365,7 @@ module WampClient
       if s
 
         details = {}
-        details[:topic] = s[:t] unless details[:topic]
+        details[:topic] = s[:t] unless details['topic']
         details[:type] = 'subscribe'
 
         n_s = Subscription.new(s[:t], s[:h], s[:o], self, msg.subscription)
@@ -354,7 +385,7 @@ module WampClient
       if s
 
         details = msg.details || {}
-        details[:topic] = s[:t] unless details[:topic]
+        details[:topic] = s[:t] unless details['topic']
         details[:type] = 'subscribe'
 
         c = s[:c]
@@ -434,7 +465,7 @@ module WampClient
       if s
 
         details = msg.details || {}
-        details[:topic] = s[:s].topic unless details[:topic]
+        details[:topic] = s[:s].topic unless details['topic']
         details[:type] = 'unsubscribe'
 
         c = s[:c]
@@ -500,7 +531,7 @@ module WampClient
       if s
 
         details = msg.details || {}
-        details[:topic] = s[:t] unless details[:topic]
+        details[:topic] = s[:t] unless details['topic']
         details[:type] = 'publish'
 
         c = s[:c]
@@ -565,7 +596,7 @@ module WampClient
       if r
 
         details = msg.details || {}
-        details[:procedure] = r[:p] unless details[:procedure]
+        details[:procedure] = r[:p] unless details['procedure']
         details[:type] = 'register'
 
         c = r[:c]
@@ -662,7 +693,7 @@ module WampClient
       if r
 
         details = msg.details || {}
-        details[:procedure] = r[:r].procedure unless details[:procedure]
+        details[:procedure] = r[:r].procedure unless details['procedure']
         details[:type] = 'unregister'
 
         c = r[:c]
@@ -730,7 +761,7 @@ module WampClient
       if call
 
         details = msg.details || {}
-        details[:procedure] = call[:p] unless details[:procedure]
+        details[:procedure] = call[:p] unless details['procedure']
         details[:type] = 'call'
 
         c = call[:c]

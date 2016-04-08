@@ -24,6 +24,11 @@ Or install it yourself as:
 
 ## Usage
 
+### Authentication
+
+#### WAMPCRA
+
+
 ### Handlers and Callbacks
 This library makes extensive use of "blocks", "lambdas", "procs", and method pointers for any returned values because
 all communication is performed asynchronously.  The library defines two types of methods
