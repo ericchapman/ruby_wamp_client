@@ -75,7 +75,7 @@ module WampClient
     attr_accessor :id, :realm, :transport
 
     # Private attributes
-    attr_accessor :_goodbye_sent, :_requests, :_subscriptions
+    attr_accessor :_goodbye_sent, :_requests, :_subscriptions, :_registrations
 
     # Constructor
     # @param transport [WampClient::Transport::Base] The transport that the session will use
@@ -95,14 +95,9 @@ module WampClient
           unregister: {}
       }
 
-      # Subscriptions in place;
+      # Init Subs and Regs in place
       self._subscriptions = {}
-
-      # Registrations in place;
-      @registrations = {}
-
-      # Incoming invocations;
-      @invocations = {}
+      self._registrations = {}
 
       # Setup Transport
       self.transport = transport
@@ -204,24 +199,31 @@ module WampClient
 
         else
 
+          # Process Errors
           if message.is_a? WampClient::Message::Error
-            if message.request_type == 32
-              self._process_subscribed_error(message)
-            elsif message.request_type == 34
-              self._process_unsubscribed_error(message)
+            if message.request_type == WampClient::Message::Types.SUBSCRIBE
+              self._process_SUBSCRIBE_error(message)
+            elsif message.request_type == WampClient::Message::Types.UNSUBSCRIBE
+              self._process_UNSUBSCRIBE_error(message)
+            elsif message.request_type == WampClient::Message::Types.PUBLISH
+              self._process_PUBLISH_error(message)
+            else
+              # TODO: Some Error??  Not Implemented yet
             end
-            # TODO: Remaining Errors
+
+          # Process Messages
           else
             if message.is_a? WampClient::Message::Subscribed
-              self._process_subscribed_success(message)
+              self._process_SUBSCRIBED(message)
             elsif message.is_a? WampClient::Message::Unsubscribed
-              self._process_unsubscribed_success(message)
+              self._process_UNSUBSCRIBED(message)
+            elsif message.is_a? WampClient::Message::Published
+              self._process_PUBLISHED(message)
             elsif message.is_a? WampClient::Message::Event
-              self._process_event(message)
+              self._process_EVENT(message)
             else
-              # TODO: Some Error?  Not Implemented yet
+              # TODO: Some Error??  Not Implemented yet
             end
-            # TODO: Process message
           end
 
         end
@@ -255,7 +257,7 @@ module WampClient
 
     # Processes the response to a subscribe request
     # @param msg [WampClient::Message::Subscribed] The response from the subscribe
-    def _process_subscribed_success(msg)
+    def _process_SUBSCRIBED(msg)
 
       r_id = msg.subscribe_request
       s_id = msg.subscription
@@ -273,7 +275,7 @@ module WampClient
 
     # Processes an error from a request
     # @param msg [WampClient::Message::Error] The response from the subscribe
-    def _process_subscribed_error(msg)
+    def _process_SUBSCRIBE_error(msg)
 
       r_id = msg.request_request
       d = msg.details
@@ -283,19 +285,22 @@ module WampClient
       s = self._requests[:subscribe].delete(r_id)
       if s
         c = s[:c]
-        c.call(nil, e, d) if c
+        c.call(s, e, d) if c
       end
 
     end
 
     # Processes and event from the broker
     # @param msg [WampClient::Message::Event] An event that was published
-    def _process_event(msg)
+    def _process_EVENT(msg)
 
       s_id = msg.subscribed_subscription
-      details = msg.details
+      p_id = msg.published_publication
+      details = msg.details || {}
       args = msg.publish_arguments
       kwargs = msg.publish_argumentskw
+
+      details[:publication] = p_id
 
       s = self._subscriptions[s_id]
       if s
@@ -330,7 +335,7 @@ module WampClient
 
     # Processes the response to a subscribe request
     # @param msg [WampClient::Message::Unsubscribed] The response from the unsubscribe
-    def _process_unsubscribed_success(msg)
+    def _process_UNSUBSCRIBED(msg)
 
       r_id = msg.unsubscribe_request
 
@@ -348,7 +353,7 @@ module WampClient
 
     # Processes an error from a request
     # @param msg [WampClient::Message::Error] The response from the subscribe
-    def _process_unsubscribed_error(msg)
+    def _process_UNSUBSCRIBE_error(msg)
 
       r_id = msg.request_request
       d = msg.details
@@ -358,7 +363,7 @@ module WampClient
       s = self._requests[:unsubscribe].delete(r_id)
       if s
         c = s[:c]
-        c.call(nil, e, d) if c
+        c.call(s, e, d) if c
       end
 
     end
@@ -367,59 +372,60 @@ module WampClient
 
     #region Publish Logic
 
-    # Subscribes to a topic
+    # Publishes and event to a topic
     # @param topic [String] The topic to subscribe to
-    # @param handler [lambda] The handler(args, kwargs, details) when a publish is received
+    # @param args [Array] The arguments
+    # @param kwargs [Hash] The keyword arguments
     # @param options [Hash] The options for the subscription
     # @param callback [lambda] The callback(subscription, error, details) called to signal if the subscription was a success or not
-    def subscribe(topic, handler, options={}, callback=nil)
+    def publish(topic, args=nil, kwargs=nil, options={}, callback=nil)
       unless is_open?
-        raise RuntimeError, "Session must be opened to call 'subscribe'"
+        raise RuntimeError, "Session must be open to call 'publish'"
       end
 
       self.class.check_uri('topic', topic)
       self.class.check_dict('options', options)
+      self.class.check_list('args', args, true)
+      self.class.check_dict('kwargs', kwargs, true)
 
-      # Create a new subscribe request
+      # Create a new publish request
       request = self._generate_id
-      self._requests[:subscribe][request] = {t: topic, h: handler, o: options, c: callback}
+      self._requests[:publish][request] = {t: topic, a: args, k: kwargs, o: options, c: callback}
 
       # Send the message
-      subscribe = WampClient::Message::Subscribe.new(request, options, topic)
-      self.transport.send_message(subscribe.payload)
+      publish = WampClient::Message::Publish.new(request, options, topic, args, kwargs)
+      self.transport.send_message(publish.payload)
     end
 
-    # Processes the response to a subscribe request
-    # @param msg [WampClient::Message::Subscribed] The response from the subscribe
-    def _process_subscribed_success(msg)
+    # Processes the response to a publish request
+    # @param msg [WampClient::Message::Published] The response from the subscribe
+    def _process_PUBLISHED(msg)
 
-      r_id = msg.subscribe_request
-      s_id = msg.subscription
+      r_id = msg.publish_request
+      p_id = msg.publication
 
-      # Remove the pending subscription, add it to the registered ones, and inform the caller
-      s = self._requests[:subscribe].delete(r_id)
+      # Remove the pending publish and alert the callback
+      s = self._requests[:publish].delete(r_id)
       if s
-        n_s = Subscription.new(s[:t], s[:h], s[:o], self, s_id)
-        self._subscriptions[s_id] = n_s
         c = s[:c]
-        c.call(n_s, nil, nil) if c
+        c.call(s, nil, {publication: p_id}) if c
       end
 
     end
 
-    # Processes an error from a request
+    # Processes an error from a publish request
     # @param msg [WampClient::Message::Error] The response from the subscribe
-    def _process_subscribed_error(msg)
+    def _process_PUBLISH_error(msg)
 
       r_id = msg.request_request
       d = msg.details
       e = msg.error
 
-      # Remove the pending subscription and inform the caller of the failure
-      s = self._requests[:subscribe].delete(r_id)
+      # Remove the pending publish and inform the caller of the failure
+      s = self._requests[:publish].delete(r_id)
       if s
         c = s[:c]
-        c.call(nil, e, d) if c
+        c.call(s, e, d) if c
       end
 
     end

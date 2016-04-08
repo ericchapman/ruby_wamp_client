@@ -4,27 +4,6 @@ describe WampClient::Session do
   let (:transport) { SpecHelper::TestTransport.new({}) }
   let (:session) { WampClient::Session.new(transport) }
 
-  HELLO = 1
-  WELCOME = 2
-  ABORT = 3
-  GOODBYE = 6
-  ERROR = 8
-  PUBLISH = 16
-  PUBLISHED = 17
-  SUBSCRIBE = 32
-  SUBSCRIBED = 33
-  UNSUBSCRIBE = 34
-  UNSUBSCRIBED = 35
-  EVENT = 36
-  CALL = 48
-  RESULT = 50
-  REGISTER = 64
-  REGISTERED = 65
-  UNREGISTER = 66
-  UNREGISTERED = 67
-  INVOCATION = 68
-  YIELD = 70
-
   describe 'establishment' do
 
     before(:each) do
@@ -44,7 +23,7 @@ describe WampClient::Session do
 
       # Check generated message
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(HELLO)
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types.HELLO)
       expect(transport.messages[0][1]).to eq('test')  # Realm Test
       expect(transport.messages[0][2][:roles]).not_to be_nil  # Roles exists
 
@@ -133,7 +112,7 @@ describe WampClient::Session do
 
       # Check state
       expect(transport.messages.count).to eq(2)
-      expect(transport.messages[1][0]).to eq(GOODBYE)
+      expect(transport.messages[1][0]).to eq(WampClient::Message::Types.GOODBYE)
       expect(transport.messages[1][2]).to eq('wamp.error.goodbye_and_out')  # Realm Test
       expect(session.id).to be_nil
       expect(session.is_open?).to eq(false)
@@ -165,7 +144,7 @@ describe WampClient::Session do
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(SUBSCRIBE)
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types.SUBSCRIBE)
       expect(transport.messages[0][1]).to eq(request_id)
       expect(transport.messages[0][2]).to eq({test: 1})
       expect(transport.messages[0][3]).to eq('test.test')
@@ -215,7 +194,7 @@ describe WampClient::Session do
       callback = lambda do |subscription, error, details|
         count += 1
 
-        expect(subscription).to be_nil
+        expect(subscription).not_to be_nil
         expect(error).to eq('this.failed')
         expect(details).to eq({fail:true})
       end
@@ -224,7 +203,8 @@ describe WampClient::Session do
       request_id = session._requests[:subscribe].keys.first
 
       # Generate server response
-      subscribed = WampClient::Message::Error.new(SUBSCRIBE, request_id, {fail:true}, 'this.failed')
+      subscribed = WampClient::Message::Error.new(WampClient::Message::Types.SUBSCRIBE,
+                                                  request_id, {fail:true}, 'this.failed')
       transport.receive_message(subscribed.payload)
 
       expect(count).to eq(1)
@@ -242,7 +222,7 @@ describe WampClient::Session do
       handler = lambda do |args, kwargs, details|
         count += 1
 
-        expect(details).to eq({test:1})
+        expect(details).to eq({test:1, publication:7890})
         expect(args).to eq([2])
         expect(kwargs).to eq({param: 'value'})
       end
@@ -301,7 +281,7 @@ describe WampClient::Session do
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(UNSUBSCRIBE)
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types.UNSUBSCRIBE)
       expect(transport.messages[0][1]).to eq(@request_id)
       expect(transport.messages[0][2]).to eq(@subscription.id)
 
@@ -366,7 +346,7 @@ describe WampClient::Session do
       callback = lambda do |subscription, error, details|
         count += 1
 
-        expect(subscription).to be_nil
+        expect(subscription).not_to be_nil
         expect(error).to eq('this.failed')
         expect(details).to eq({fail:true})
       end
@@ -378,7 +358,8 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      subscribed = WampClient::Message::Error.new(UNSUBSCRIBE, @request_id, {fail:true}, 'this.failed')
+      subscribed = WampClient::Message::Error.new(WampClient::Message::Types.UNSUBSCRIBE,
+                                                  @request_id, {fail:true}, 'this.failed')
       transport.receive_message(subscribed.payload)
 
       expect(count).to eq(1)
