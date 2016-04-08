@@ -100,7 +100,7 @@ module WampClient
     # @param details [Hash] Object containing information about the left session
     attr_accessor :on_leave
 
-    attr_accessor :id, :realm, :transport
+    attr_accessor :id, :realm, :transport, :verbose
 
     # Private attributes
     attr_accessor :_goodbye_sent, :_requests, :_subscriptions, :_registrations
@@ -112,6 +112,7 @@ module WampClient
       # Parameters
       self.id = nil
       self.realm = nil
+      self.verbose = false
 
       # Outstanding Requests
       self._requests = {
@@ -130,7 +131,7 @@ module WampClient
       # Setup Transport
       self.transport = transport
       self.transport.on_message = lambda do |msg|
-        self._process_message(msg)
+        self._receive_message(msg)
       end
 
       # Other parameters
@@ -164,7 +165,7 @@ module WampClient
 
       # Send Hello message
       hello = WampClient::Message::Hello.new(realm, details)
-      self.transport.send_message(hello.payload)
+      self._send_message(hello)
     end
 
     # Leaves the WAMP Router
@@ -182,7 +183,7 @@ module WampClient
 
       # Send Goodbye message
       goodbye = WampClient::Message::Goodbye.new(details, reason)
-      self.transport.send_message(goodbye.payload)
+      self._send_message(goodbye)
       self._goodbye_sent = true
     end
 
@@ -191,10 +192,20 @@ module WampClient
       rand(0..9007199254740992)
     end
 
+    # Sends a message
+    # @param msg [WampClient::Message::Base]
+    def _send_message(msg)
+      puts 'TX: ' + msg.to_s if self.verbose
+      self.transport.send_message(msg.payload)
+    end
+
     # Processes received messages
-    def _process_message(msg)
-   
+    # @param msg [Array]
+    def _receive_message(msg)
+
       message = WampClient::Message::Base.parse(msg)
+
+      puts 'RX: ' + message.to_s if self.verbose
 
       # WAMP Session is not open
       if self.id.nil?
@@ -216,7 +227,7 @@ module WampClient
           # If we didn't send the goodbye, respond
           unless self._goodbye_sent
             goodbye = WampClient::Message::Goodbye.new({}, 'wamp.error.goodbye_and_out')
-            self.transport.send_message(goodbye.payload)
+            self._send_message(goodbye)
           end
 
           # Close out session
@@ -294,7 +305,7 @@ module WampClient
 
       # Send the message
       subscribe = WampClient::Message::Subscribe.new(request, options, topic)
-      self.transport.send_message(subscribe.payload)
+      self._send_message(subscribe)
     end
 
     # Processes the response to a subscribe request
@@ -374,7 +385,7 @@ module WampClient
 
       # Send the message
       unsubscribe = WampClient::Message::Unsubscribe.new(request, subscription.id)
-      self.transport.send_message(unsubscribe.payload)
+      self._send_message(unsubscribe)
     end
 
     # Processes the response to a unsubscribe request
@@ -440,7 +451,7 @@ module WampClient
 
       # Send the message
       publish = WampClient::Message::Publish.new(request, options, topic, args, kwargs)
-      self.transport.send_message(publish.payload)
+      self._send_message(publish)
     end
 
     # Processes the response to a publish request
@@ -501,7 +512,7 @@ module WampClient
 
       # Send the message
       register = WampClient::Message::Register.new(request, options, procedure)
-      self.transport.send_message(register.payload)
+      self._send_message(register)
     end
 
     # Processes the response to a register request
@@ -569,10 +580,10 @@ module WampClient
             # TODO: Handle promise or future
 
             yield_msg = WampClient::Message::Yield.new(request, {}, value.args, value.kwargs)
-            self.transport.send_message(yield_msg.payload)
+            self._send_message(yield_msg)
           rescue Exception => e
             error = WampClient::Message::Error.new(WampClient::Message::Types::INVOCATION, request, {}, 'wamp.runtime.error', [e.to_s])
-            self.transport.send_message(error.payload)
+            self._send_message(error)
           end
         end
       end
@@ -598,7 +609,7 @@ module WampClient
 
       # Send the message
       unregister = WampClient::Message::Unregister.new(request, registration.id)
-      self.transport.send_message(unregister.payload)
+      self._send_message(unregister)
     end
 
     # Processes the response to a unregister request
@@ -663,7 +674,7 @@ module WampClient
 
       # Send the message
       call = WampClient::Message::Call.new(request, options, procedure, args, kwargs)
-      self.transport.send_message(call.payload)
+      self._send_message(call)
     end
 
     # Processes the response to a publish request

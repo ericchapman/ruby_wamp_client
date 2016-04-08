@@ -324,9 +324,14 @@ messages.each do |message|
   source_file += '    class ' + message[:name].capitalize + " < Base\n"
 
   # Generate the local variables
+  source_file += '      attr_accessor'
+  count = 0
   params.each do |param|
-    source_file += "      @#{param[:name]}\n"
+    source_file += ',' unless count == 0
+    source_file += " :#{param[:name]}"
+    count += 1
   end
+  source_file += "\n"
 
   # Generate the constructor
   source_file += "\n      def initialize("
@@ -334,7 +339,7 @@ messages.each do |message|
   checks = ''
   setters = ''
   params.each do |param|
-    setters += "        @#{param[:name]} = #{param[:name]}\n"
+    setters += "        self.#{param[:name]} = #{param[:name]}\n"
 
     source_file += ', ' if count > 0
     if param[:required]
@@ -367,26 +372,20 @@ messages.each do |message|
   source_file += "        payload = [self.class.type]\n"
   params.each do |param|
     if param[:required]
-      source_file += "        payload.push(@#{param[:name]})\n"
+      source_file += "        payload.push(self.#{param[:name]})\n"
     else
-      source_file += "\n        return payload if @#{param[:name]}.nil?\n"
-      source_file += "        payload.push(@#{param[:name]})\n"
+      source_file += "\n        return payload if self.#{param[:name]}.nil?\n"
+      source_file += "        payload.push(self.#{param[:name]})\n"
     end
   end
   source_file += "\n        payload\n"
   source_file += "      end\n"
 
-  # Generate the getters
-  params.each do |param|
-    source_file += "\n      def #{param[:name]}\n"
-    source_file += "        @#{param[:name]}"
-    if param[:type] == 'dict'
-      source_file += ' || {}'
-    elsif param[:type] == 'list'
-      source_file += ' || []'
-    end
-    source_file += "\n      end\n"
-  end
+  # Generate the string
+  source_file += "\n      def to_s\n"
+  source_file += "        '#{message[:name].upcase} > ' + self.payload.to_s\n"
+  source_file += "      end\n"
+
 
   source_file += "\n    end\n"
 

@@ -90,16 +90,15 @@ module WampClient
     # Formats:
     #   [HELLO, Realm|uri, Details|dict]
     class Hello < Base
-      @realm
-      @details
+      attr_accessor :realm, :details
 
       def initialize(realm, details)
 
         self.class.check_uri('realm', realm)
         self.class.check_dict('details', details)
 
-        @realm = realm
-        @details = details
+        self.realm = realm
+        self.details = details
 
       end
 
@@ -119,18 +118,14 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@realm)
-        payload.push(@details)
+        payload.push(self.realm)
+        payload.push(self.details)
 
         payload
       end
 
-      def realm
-        @realm
-      end
-
-      def details
-        @details || {}
+      def to_s
+        'HELLO > ' + self.payload.to_s
       end
 
     end
@@ -140,16 +135,15 @@ module WampClient
     # Formats:
     #   [WELCOME, Session|id, Details|dict]
     class Welcome < Base
-      @session
-      @details
+      attr_accessor :session, :details
 
       def initialize(session, details)
 
         self.class.check_id('session', session)
         self.class.check_dict('details', details)
 
-        @session = session
-        @details = details
+        self.session = session
+        self.details = details
 
       end
 
@@ -169,18 +163,14 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@session)
-        payload.push(@details)
+        payload.push(self.session)
+        payload.push(self.details)
 
         payload
       end
 
-      def session
-        @session
-      end
-
-      def details
-        @details || {}
+      def to_s
+        'WELCOME > ' + self.payload.to_s
       end
 
     end
@@ -190,16 +180,15 @@ module WampClient
     # Formats:
     #   [ABORT, Details|dict, Reason|uri]
     class Abort < Base
-      @details
-      @reason
+      attr_accessor :details, :reason
 
       def initialize(details, reason)
 
         self.class.check_dict('details', details)
         self.class.check_uri('reason', reason)
 
-        @details = details
-        @reason = reason
+        self.details = details
+        self.reason = reason
 
       end
 
@@ -219,18 +208,14 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@details)
-        payload.push(@reason)
+        payload.push(self.details)
+        payload.push(self.reason)
 
         payload
       end
 
-      def details
-        @details || {}
-      end
-
-      def reason
-        @reason
+      def to_s
+        'ABORT > ' + self.payload.to_s
       end
 
     end
@@ -240,16 +225,15 @@ module WampClient
     # Formats:
     #   [GOODBYE, Details|dict, Reason|uri]
     class Goodbye < Base
-      @details
-      @reason
+      attr_accessor :details, :reason
 
       def initialize(details, reason)
 
         self.class.check_dict('details', details)
         self.class.check_uri('reason', reason)
 
-        @details = details
-        @reason = reason
+        self.details = details
+        self.reason = reason
 
       end
 
@@ -269,18 +253,14 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@details)
-        payload.push(@reason)
+        payload.push(self.details)
+        payload.push(self.reason)
 
         payload
       end
 
-      def details
-        @details || {}
-      end
-
-      def reason
-        @reason
+      def to_s
+        'GOODBYE > ' + self.payload.to_s
       end
 
     end
@@ -292,12 +272,7 @@ module WampClient
     #   [ERROR, REQUEST.Type|int, REQUEST.Request|id, Details|dict, Error|uri, Arguments|list]
     #   [ERROR, REQUEST.Type|int, REQUEST.Request|id, Details|dict, Error|uri, Arguments|list, ArgumentsKw|dict]
     class Error < Base
-      @request_type
-      @request_request
-      @details
-      @error
-      @arguments
-      @argumentskw
+      attr_accessor :request_type, :request_request, :details, :error, :arguments, :argumentskw
 
       def initialize(request_type, request_request, details, error, arguments=nil, argumentskw=nil)
 
@@ -308,12 +283,12 @@ module WampClient
         self.class.check_list('arguments', arguments, true)
         self.class.check_dict('argumentskw', argumentskw, true)
 
-        @request_type = request_type
-        @request_request = request_request
-        @details = details
-        @error = error
-        @arguments = arguments
-        @argumentskw = argumentskw
+        self.request_type = request_type
+        self.request_request = request_request
+        self.details = details
+        self.error = error
+        self.arguments = arguments
+        self.argumentskw = argumentskw
 
       end
 
@@ -333,42 +308,22 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@request_type)
-        payload.push(@request_request)
-        payload.push(@details)
-        payload.push(@error)
+        payload.push(self.request_type)
+        payload.push(self.request_request)
+        payload.push(self.details)
+        payload.push(self.error)
 
-        return payload if @arguments.nil?
-        payload.push(@arguments)
+        return payload if self.arguments.nil?
+        payload.push(self.arguments)
 
-        return payload if @argumentskw.nil?
-        payload.push(@argumentskw)
+        return payload if self.argumentskw.nil?
+        payload.push(self.argumentskw)
 
         payload
       end
 
-      def request_type
-        @request_type
-      end
-
-      def request_request
-        @request_request
-      end
-
-      def details
-        @details || {}
-      end
-
-      def error
-        @error
-      end
-
-      def arguments
-        @arguments || []
-      end
-
-      def argumentskw
-        @argumentskw || {}
+      def to_s
+        'ERROR > ' + self.payload.to_s
       end
 
     end
@@ -380,11 +335,7 @@ module WampClient
     #   [PUBLISH, Request|id, Options|dict, Topic|uri, Arguments|list]
     #   [PUBLISH, Request|id, Options|dict, Topic|uri, Arguments|list, ArgumentsKw|dict]
     class Publish < Base
-      @request
-      @options
-      @topic
-      @arguments
-      @argumentskw
+      attr_accessor :request, :options, :topic, :arguments, :argumentskw
 
       def initialize(request, options, topic, arguments=nil, argumentskw=nil)
 
@@ -394,11 +345,11 @@ module WampClient
         self.class.check_list('arguments', arguments, true)
         self.class.check_dict('argumentskw', argumentskw, true)
 
-        @request = request
-        @options = options
-        @topic = topic
-        @arguments = arguments
-        @argumentskw = argumentskw
+        self.request = request
+        self.options = options
+        self.topic = topic
+        self.arguments = arguments
+        self.argumentskw = argumentskw
 
       end
 
@@ -418,37 +369,21 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@request)
-        payload.push(@options)
-        payload.push(@topic)
+        payload.push(self.request)
+        payload.push(self.options)
+        payload.push(self.topic)
 
-        return payload if @arguments.nil?
-        payload.push(@arguments)
+        return payload if self.arguments.nil?
+        payload.push(self.arguments)
 
-        return payload if @argumentskw.nil?
-        payload.push(@argumentskw)
+        return payload if self.argumentskw.nil?
+        payload.push(self.argumentskw)
 
         payload
       end
 
-      def request
-        @request
-      end
-
-      def options
-        @options || {}
-      end
-
-      def topic
-        @topic
-      end
-
-      def arguments
-        @arguments || []
-      end
-
-      def argumentskw
-        @argumentskw || {}
+      def to_s
+        'PUBLISH > ' + self.payload.to_s
       end
 
     end
@@ -458,16 +393,15 @@ module WampClient
     # Formats:
     #   [PUBLISHED, PUBLISH.Request|id, Publication|id]
     class Published < Base
-      @publish_request
-      @publication
+      attr_accessor :publish_request, :publication
 
       def initialize(publish_request, publication)
 
         self.class.check_id('publish_request', publish_request)
         self.class.check_id('publication', publication)
 
-        @publish_request = publish_request
-        @publication = publication
+        self.publish_request = publish_request
+        self.publication = publication
 
       end
 
@@ -487,18 +421,14 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@publish_request)
-        payload.push(@publication)
+        payload.push(self.publish_request)
+        payload.push(self.publication)
 
         payload
       end
 
-      def publish_request
-        @publish_request
-      end
-
-      def publication
-        @publication
+      def to_s
+        'PUBLISHED > ' + self.payload.to_s
       end
 
     end
@@ -508,9 +438,7 @@ module WampClient
     # Formats:
     #   [SUBSCRIBE, Request|id, Options|dict, Topic|uri]
     class Subscribe < Base
-      @request
-      @options
-      @topic
+      attr_accessor :request, :options, :topic
 
       def initialize(request, options, topic)
 
@@ -518,9 +446,9 @@ module WampClient
         self.class.check_dict('options', options)
         self.class.check_uri('topic', topic)
 
-        @request = request
-        @options = options
-        @topic = topic
+        self.request = request
+        self.options = options
+        self.topic = topic
 
       end
 
@@ -540,23 +468,15 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@request)
-        payload.push(@options)
-        payload.push(@topic)
+        payload.push(self.request)
+        payload.push(self.options)
+        payload.push(self.topic)
 
         payload
       end
 
-      def request
-        @request
-      end
-
-      def options
-        @options || {}
-      end
-
-      def topic
-        @topic
+      def to_s
+        'SUBSCRIBE > ' + self.payload.to_s
       end
 
     end
@@ -566,16 +486,15 @@ module WampClient
     # Formats:
     #   [SUBSCRIBED, SUBSCRIBE.Request|id, Subscription|id]
     class Subscribed < Base
-      @subscribe_request
-      @subscription
+      attr_accessor :subscribe_request, :subscription
 
       def initialize(subscribe_request, subscription)
 
         self.class.check_id('subscribe_request', subscribe_request)
         self.class.check_id('subscription', subscription)
 
-        @subscribe_request = subscribe_request
-        @subscription = subscription
+        self.subscribe_request = subscribe_request
+        self.subscription = subscription
 
       end
 
@@ -595,18 +514,14 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@subscribe_request)
-        payload.push(@subscription)
+        payload.push(self.subscribe_request)
+        payload.push(self.subscription)
 
         payload
       end
 
-      def subscribe_request
-        @subscribe_request
-      end
-
-      def subscription
-        @subscription
+      def to_s
+        'SUBSCRIBED > ' + self.payload.to_s
       end
 
     end
@@ -616,16 +531,15 @@ module WampClient
     # Formats:
     #   [UNSUBSCRIBE, Request|id, SUBSCRIBED.Subscription|id]
     class Unsubscribe < Base
-      @request
-      @subscribed_subscription
+      attr_accessor :request, :subscribed_subscription
 
       def initialize(request, subscribed_subscription)
 
         self.class.check_id('request', request)
         self.class.check_id('subscribed_subscription', subscribed_subscription)
 
-        @request = request
-        @subscribed_subscription = subscribed_subscription
+        self.request = request
+        self.subscribed_subscription = subscribed_subscription
 
       end
 
@@ -645,18 +559,14 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@request)
-        payload.push(@subscribed_subscription)
+        payload.push(self.request)
+        payload.push(self.subscribed_subscription)
 
         payload
       end
 
-      def request
-        @request
-      end
-
-      def subscribed_subscription
-        @subscribed_subscription
+      def to_s
+        'UNSUBSCRIBE > ' + self.payload.to_s
       end
 
     end
@@ -666,13 +576,13 @@ module WampClient
     # Formats:
     #   [UNSUBSCRIBED, UNSUBSCRIBE.Request|id]
     class Unsubscribed < Base
-      @unsubscribe_request
+      attr_accessor :unsubscribe_request
 
       def initialize(unsubscribe_request)
 
         self.class.check_id('unsubscribe_request', unsubscribe_request)
 
-        @unsubscribe_request = unsubscribe_request
+        self.unsubscribe_request = unsubscribe_request
 
       end
 
@@ -692,13 +602,13 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@unsubscribe_request)
+        payload.push(self.unsubscribe_request)
 
         payload
       end
 
-      def unsubscribe_request
-        @unsubscribe_request
+      def to_s
+        'UNSUBSCRIBED > ' + self.payload.to_s
       end
 
     end
@@ -710,11 +620,7 @@ module WampClient
     #   [EVENT, SUBSCRIBED.Subscription|id, PUBLISHED.Publication|id, Details|dict, PUBLISH.Arguments|list]
     #   [EVENT, SUBSCRIBED.Subscription|id, PUBLISHED.Publication|id, Details|dict, PUBLISH.Arguments|list, PUBLISH.ArgumentsKw|dict]
     class Event < Base
-      @subscribed_subscription
-      @published_publication
-      @details
-      @publish_arguments
-      @publish_argumentskw
+      attr_accessor :subscribed_subscription, :published_publication, :details, :publish_arguments, :publish_argumentskw
 
       def initialize(subscribed_subscription, published_publication, details, publish_arguments=nil, publish_argumentskw=nil)
 
@@ -724,11 +630,11 @@ module WampClient
         self.class.check_list('publish_arguments', publish_arguments, true)
         self.class.check_dict('publish_argumentskw', publish_argumentskw, true)
 
-        @subscribed_subscription = subscribed_subscription
-        @published_publication = published_publication
-        @details = details
-        @publish_arguments = publish_arguments
-        @publish_argumentskw = publish_argumentskw
+        self.subscribed_subscription = subscribed_subscription
+        self.published_publication = published_publication
+        self.details = details
+        self.publish_arguments = publish_arguments
+        self.publish_argumentskw = publish_argumentskw
 
       end
 
@@ -748,37 +654,21 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@subscribed_subscription)
-        payload.push(@published_publication)
-        payload.push(@details)
+        payload.push(self.subscribed_subscription)
+        payload.push(self.published_publication)
+        payload.push(self.details)
 
-        return payload if @publish_arguments.nil?
-        payload.push(@publish_arguments)
+        return payload if self.publish_arguments.nil?
+        payload.push(self.publish_arguments)
 
-        return payload if @publish_argumentskw.nil?
-        payload.push(@publish_argumentskw)
+        return payload if self.publish_argumentskw.nil?
+        payload.push(self.publish_argumentskw)
 
         payload
       end
 
-      def subscribed_subscription
-        @subscribed_subscription
-      end
-
-      def published_publication
-        @published_publication
-      end
-
-      def details
-        @details || {}
-      end
-
-      def publish_arguments
-        @publish_arguments || []
-      end
-
-      def publish_argumentskw
-        @publish_argumentskw || {}
+      def to_s
+        'EVENT > ' + self.payload.to_s
       end
 
     end
@@ -790,11 +680,7 @@ module WampClient
     #   [CALL, Request|id, Options|dict, Procedure|uri, Arguments|list]
     #   [CALL, Request|id, Options|dict, Procedure|uri, Arguments|list, ArgumentsKw|dict]
     class Call < Base
-      @request
-      @options
-      @procedure
-      @arguments
-      @argumentskw
+      attr_accessor :request, :options, :procedure, :arguments, :argumentskw
 
       def initialize(request, options, procedure, arguments=nil, argumentskw=nil)
 
@@ -804,11 +690,11 @@ module WampClient
         self.class.check_list('arguments', arguments, true)
         self.class.check_dict('argumentskw', argumentskw, true)
 
-        @request = request
-        @options = options
-        @procedure = procedure
-        @arguments = arguments
-        @argumentskw = argumentskw
+        self.request = request
+        self.options = options
+        self.procedure = procedure
+        self.arguments = arguments
+        self.argumentskw = argumentskw
 
       end
 
@@ -828,37 +714,21 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@request)
-        payload.push(@options)
-        payload.push(@procedure)
+        payload.push(self.request)
+        payload.push(self.options)
+        payload.push(self.procedure)
 
-        return payload if @arguments.nil?
-        payload.push(@arguments)
+        return payload if self.arguments.nil?
+        payload.push(self.arguments)
 
-        return payload if @argumentskw.nil?
-        payload.push(@argumentskw)
+        return payload if self.argumentskw.nil?
+        payload.push(self.argumentskw)
 
         payload
       end
 
-      def request
-        @request
-      end
-
-      def options
-        @options || {}
-      end
-
-      def procedure
-        @procedure
-      end
-
-      def arguments
-        @arguments || []
-      end
-
-      def argumentskw
-        @argumentskw || {}
+      def to_s
+        'CALL > ' + self.payload.to_s
       end
 
     end
@@ -870,10 +740,7 @@ module WampClient
     #   [RESULT, CALL.Request|id, Details|dict, YIELD.Arguments|list]
     #   [RESULT, CALL.Request|id, Details|dict, YIELD.Arguments|list, YIELD.ArgumentsKw|dict]
     class Result < Base
-      @call_request
-      @details
-      @yield_arguments
-      @yield_argumentskw
+      attr_accessor :call_request, :details, :yield_arguments, :yield_argumentskw
 
       def initialize(call_request, details, yield_arguments=nil, yield_argumentskw=nil)
 
@@ -882,10 +749,10 @@ module WampClient
         self.class.check_list('yield_arguments', yield_arguments, true)
         self.class.check_dict('yield_argumentskw', yield_argumentskw, true)
 
-        @call_request = call_request
-        @details = details
-        @yield_arguments = yield_arguments
-        @yield_argumentskw = yield_argumentskw
+        self.call_request = call_request
+        self.details = details
+        self.yield_arguments = yield_arguments
+        self.yield_argumentskw = yield_argumentskw
 
       end
 
@@ -905,32 +772,20 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@call_request)
-        payload.push(@details)
+        payload.push(self.call_request)
+        payload.push(self.details)
 
-        return payload if @yield_arguments.nil?
-        payload.push(@yield_arguments)
+        return payload if self.yield_arguments.nil?
+        payload.push(self.yield_arguments)
 
-        return payload if @yield_argumentskw.nil?
-        payload.push(@yield_argumentskw)
+        return payload if self.yield_argumentskw.nil?
+        payload.push(self.yield_argumentskw)
 
         payload
       end
 
-      def call_request
-        @call_request
-      end
-
-      def details
-        @details || {}
-      end
-
-      def yield_arguments
-        @yield_arguments || []
-      end
-
-      def yield_argumentskw
-        @yield_argumentskw || {}
+      def to_s
+        'RESULT > ' + self.payload.to_s
       end
 
     end
@@ -940,9 +795,7 @@ module WampClient
     # Formats:
     #   [REGISTER, Request|id, Options|dict, Procedure|uri]
     class Register < Base
-      @request
-      @options
-      @procedure
+      attr_accessor :request, :options, :procedure
 
       def initialize(request, options, procedure)
 
@@ -950,9 +803,9 @@ module WampClient
         self.class.check_dict('options', options)
         self.class.check_uri('procedure', procedure)
 
-        @request = request
-        @options = options
-        @procedure = procedure
+        self.request = request
+        self.options = options
+        self.procedure = procedure
 
       end
 
@@ -972,23 +825,15 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@request)
-        payload.push(@options)
-        payload.push(@procedure)
+        payload.push(self.request)
+        payload.push(self.options)
+        payload.push(self.procedure)
 
         payload
       end
 
-      def request
-        @request
-      end
-
-      def options
-        @options || {}
-      end
-
-      def procedure
-        @procedure
+      def to_s
+        'REGISTER > ' + self.payload.to_s
       end
 
     end
@@ -998,16 +843,15 @@ module WampClient
     # Formats:
     #   [REGISTERED, REGISTER.Request|id, Registration|id]
     class Registered < Base
-      @register_request
-      @registration
+      attr_accessor :register_request, :registration
 
       def initialize(register_request, registration)
 
         self.class.check_id('register_request', register_request)
         self.class.check_id('registration', registration)
 
-        @register_request = register_request
-        @registration = registration
+        self.register_request = register_request
+        self.registration = registration
 
       end
 
@@ -1027,18 +871,14 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@register_request)
-        payload.push(@registration)
+        payload.push(self.register_request)
+        payload.push(self.registration)
 
         payload
       end
 
-      def register_request
-        @register_request
-      end
-
-      def registration
-        @registration
+      def to_s
+        'REGISTERED > ' + self.payload.to_s
       end
 
     end
@@ -1048,16 +888,15 @@ module WampClient
     # Formats:
     #   [UNREGISTER, Request|id, REGISTERED.Registration|id]
     class Unregister < Base
-      @request
-      @registered_registration
+      attr_accessor :request, :registered_registration
 
       def initialize(request, registered_registration)
 
         self.class.check_id('request', request)
         self.class.check_id('registered_registration', registered_registration)
 
-        @request = request
-        @registered_registration = registered_registration
+        self.request = request
+        self.registered_registration = registered_registration
 
       end
 
@@ -1077,18 +916,14 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@request)
-        payload.push(@registered_registration)
+        payload.push(self.request)
+        payload.push(self.registered_registration)
 
         payload
       end
 
-      def request
-        @request
-      end
-
-      def registered_registration
-        @registered_registration
+      def to_s
+        'UNREGISTER > ' + self.payload.to_s
       end
 
     end
@@ -1098,13 +933,13 @@ module WampClient
     # Formats:
     #   [UNREGISTERED, UNREGISTER.Request|id]
     class Unregistered < Base
-      @unregister_request
+      attr_accessor :unregister_request
 
       def initialize(unregister_request)
 
         self.class.check_id('unregister_request', unregister_request)
 
-        @unregister_request = unregister_request
+        self.unregister_request = unregister_request
 
       end
 
@@ -1124,13 +959,13 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@unregister_request)
+        payload.push(self.unregister_request)
 
         payload
       end
 
-      def unregister_request
-        @unregister_request
+      def to_s
+        'UNREGISTERED > ' + self.payload.to_s
       end
 
     end
@@ -1142,11 +977,7 @@ module WampClient
     #   [INVOCATION, Request|id, REGISTERED.Registration|id, Details|dict, CALL.Arguments|list]
     #   [INVOCATION, Request|id, REGISTERED.Registration|id, Details|dict, CALL.Arguments|list, CALL.ArgumentsKw|dict]
     class Invocation < Base
-      @request
-      @registered_registration
-      @details
-      @call_arguments
-      @call_argumentskw
+      attr_accessor :request, :registered_registration, :details, :call_arguments, :call_argumentskw
 
       def initialize(request, registered_registration, details, call_arguments=nil, call_argumentskw=nil)
 
@@ -1156,11 +987,11 @@ module WampClient
         self.class.check_list('call_arguments', call_arguments, true)
         self.class.check_dict('call_argumentskw', call_argumentskw, true)
 
-        @request = request
-        @registered_registration = registered_registration
-        @details = details
-        @call_arguments = call_arguments
-        @call_argumentskw = call_argumentskw
+        self.request = request
+        self.registered_registration = registered_registration
+        self.details = details
+        self.call_arguments = call_arguments
+        self.call_argumentskw = call_argumentskw
 
       end
 
@@ -1180,37 +1011,21 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@request)
-        payload.push(@registered_registration)
-        payload.push(@details)
+        payload.push(self.request)
+        payload.push(self.registered_registration)
+        payload.push(self.details)
 
-        return payload if @call_arguments.nil?
-        payload.push(@call_arguments)
+        return payload if self.call_arguments.nil?
+        payload.push(self.call_arguments)
 
-        return payload if @call_argumentskw.nil?
-        payload.push(@call_argumentskw)
+        return payload if self.call_argumentskw.nil?
+        payload.push(self.call_argumentskw)
 
         payload
       end
 
-      def request
-        @request
-      end
-
-      def registered_registration
-        @registered_registration
-      end
-
-      def details
-        @details || {}
-      end
-
-      def call_arguments
-        @call_arguments || []
-      end
-
-      def call_argumentskw
-        @call_argumentskw || {}
+      def to_s
+        'INVOCATION > ' + self.payload.to_s
       end
 
     end
@@ -1222,10 +1037,7 @@ module WampClient
     #   [YIELD, INVOCATION.Request|id, Options|dict, Arguments|list]
     #   [YIELD, INVOCATION.Request|id, Options|dict, Arguments|list, ArgumentsKw|dict]
     class Yield < Base
-      @invocation_request
-      @options
-      @arguments
-      @argumentskw
+      attr_accessor :invocation_request, :options, :arguments, :argumentskw
 
       def initialize(invocation_request, options, arguments=nil, argumentskw=nil)
 
@@ -1234,10 +1046,10 @@ module WampClient
         self.class.check_list('arguments', arguments, true)
         self.class.check_dict('argumentskw', argumentskw, true)
 
-        @invocation_request = invocation_request
-        @options = options
-        @arguments = arguments
-        @argumentskw = argumentskw
+        self.invocation_request = invocation_request
+        self.options = options
+        self.arguments = arguments
+        self.argumentskw = argumentskw
 
       end
 
@@ -1257,32 +1069,20 @@ module WampClient
 
       def payload
         payload = [self.class.type]
-        payload.push(@invocation_request)
-        payload.push(@options)
+        payload.push(self.invocation_request)
+        payload.push(self.options)
 
-        return payload if @arguments.nil?
-        payload.push(@arguments)
+        return payload if self.arguments.nil?
+        payload.push(self.arguments)
 
-        return payload if @argumentskw.nil?
-        payload.push(@argumentskw)
+        return payload if self.argumentskw.nil?
+        payload.push(self.argumentskw)
 
         payload
       end
 
-      def invocation_request
-        @invocation_request
-      end
-
-      def options
-        @options || {}
-      end
-
-      def arguments
-        @arguments || []
-      end
-
-      def argumentskw
-        @argumentskw || {}
+      def to_s
+        'YIELD > ' + self.payload.to_s
       end
 
     end
