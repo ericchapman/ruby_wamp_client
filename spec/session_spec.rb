@@ -938,4 +938,67 @@ describe WampClient::Session do
 
   end
 
+  describe 'auth' do
+
+    let (:challenge) {"{ \"nonce\": \"LHRTC9zeOIrt_9U3\", \"authprovider\": \"userdb\", \"authid\": \"peter\", \"timestamp\": \"2014-06-22T16:36:25.448Z\", \"authrole\": \"user\", \"authmethod\": \"wampcra\", \"session\": 3251278072152162}"}
+    let (:secret) {'secret'}
+
+    before(:each) do
+      session.join('test')
+      transport.messages = []
+
+      session.on_challenge do |authmethod, extra|
+        expect(authmethod).to eq('wampcra')
+        WampClient::Auth::Cra.sign(secret, extra['challenge'])
+      end
+    end
+
+    it 'challenge => authenticate' do
+
+      # Send the challenge
+      challenge_msg = WampClient::Message::Challenge.new('wampcra', {'challenge' => challenge})
+      transport.receive_message(challenge_msg.payload)
+
+      # Check the transport messages
+      expect(transport.messages.count).to eq(1)
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::AUTHENTICATE)
+      expect(transport.messages[0][1]).to eq('Pji30JC9tb/T9tbEwxw5i0RyRa5UVBxuoIVTgT7hnkE=')
+      expect(transport.messages[0][2]).to eq({})
+
+    end
+
+    it 'accepts a wampcra challenge' do
+
+      # Send the challenge
+      challenge_msg = WampClient::Message::Challenge.new('wampcra', {'challenge' => challenge})
+      transport.receive_message(challenge_msg.payload)
+
+      # Send welcome message
+      welcome = WampClient::Message::Welcome.new(1234, {})
+      transport.receive_message(welcome.payload)
+
+      # Check new state of session
+      expect(session.id).to eq(1234)
+      expect(transport.messages.count).to eq(1)
+
+    end
+
+    it 'rejects a wampcra challenge' do
+
+      # Send the challenge
+      challenge_msg = WampClient::Message::Challenge.new('wampcra', {'challenge' => challenge})
+      transport.receive_message(challenge_msg.payload)
+
+      # Send abort message
+      abort = WampClient::Message::Abort.new({}, 'test.reason')
+      transport.receive_message(abort.payload)
+
+      # Check new state of session
+      expect(session.id).to be_nil
+      expect(transport.messages.count).to eq(1)
+
+    end
+
+  end
+
 end
