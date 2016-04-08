@@ -193,8 +193,7 @@ module WampClient
 
     # Processes received messages
     def _process_message(msg)
-      puts msg
-
+   
       message = WampClient::Message::Base.parse(msg)
 
       # WAMP Session is not open
@@ -558,18 +557,23 @@ module WampClient
       if r
         h = r.handler
         if h
-          value = h.call(args, kwargs, details)
+          begin
+            value = h.call(args, kwargs, details)
 
-          if value.nil?
-            value = CallResult.new
-          elsif not value.is_a?(CallResult)
-            value = CallResult.new([value])
+            if value.nil?
+              value = CallResult.new
+            elsif not value.is_a?(CallResult)
+              value = CallResult.new([value])
+            end
+
+            # TODO: Handle promise or future
+
+            yield_msg = WampClient::Message::Yield.new(request, {}, value.args, value.kwargs)
+            self.transport.send_message(yield_msg.payload)
+          rescue Exception => e
+            error = WampClient::Message::Error.new(WampClient::Message::Types::INVOCATION, request, {}, 'wamp.runtime.error', [e.to_s])
+            self.transport.send_message(error.payload)
           end
-
-          # TODO: Handle promise or future
-
-          yield_msg = WampClient::Message::Yield.new(request, {}, value.args, value.kwargs)
-          self.transport.send_message(yield_msg.payload)
         end
       end
     end

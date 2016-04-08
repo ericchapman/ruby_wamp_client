@@ -582,7 +582,11 @@ describe WampClient::Session do
 
       # Register
       @response = 'response'
+      @throw_error = false
       handler = lambda do |args, kwargs, details|
+
+        raise 'error' if @throw_error
+
         @response
       end
 
@@ -645,6 +649,27 @@ describe WampClient::Session do
       expect(transport.messages[0][2]).to eq({})
       expect(transport.messages[0][3]).to eq(['test'])
       expect(transport.messages[0][4]).to eq({test:1})
+
+    end
+
+    it 'call error response' do
+
+      @throw_error = true
+
+      # Generate server event
+      invocation = WampClient::Message::Invocation.new(7890, 3456, {test:1}, [2], {param: 'value'})
+      transport.receive_message(invocation.payload)
+
+      @throw_error = false
+
+      # Check and make sure yield message was sent
+      expect(transport.messages.count).to eq(1)
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::ERROR)
+      expect(transport.messages[0][1]).to eq(WampClient::Message::Types::INVOCATION)
+      expect(transport.messages[0][2]).to eq(7890)
+      expect(transport.messages[0][3]).to eq({})
+      expect(transport.messages[0][4]).to eq('wamp.runtime.error')
+      expect(transport.messages[0][5]).to eq(['error'])
 
     end
   end
