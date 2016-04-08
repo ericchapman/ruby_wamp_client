@@ -23,7 +23,7 @@ describe WampClient::Session do
 
       # Check generated message
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types.HELLO)
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::HELLO)
       expect(transport.messages[0][1]).to eq('test')  # Realm Test
       expect(transport.messages[0][2][:roles]).not_to be_nil  # Roles exists
 
@@ -112,7 +112,7 @@ describe WampClient::Session do
 
       # Check state
       expect(transport.messages.count).to eq(2)
-      expect(transport.messages[1][0]).to eq(WampClient::Message::Types.GOODBYE)
+      expect(transport.messages[1][0]).to eq(WampClient::Message::Types::GOODBYE)
       expect(transport.messages[1][2]).to eq('wamp.error.goodbye_and_out')  # Realm Test
       expect(session.id).to be_nil
       expect(session.is_open?).to eq(false)
@@ -144,7 +144,7 @@ describe WampClient::Session do
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types.SUBSCRIBE)
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::SUBSCRIBE)
       expect(transport.messages[0][1]).to eq(request_id)
       expect(transport.messages[0][2]).to eq({test: 1})
       expect(transport.messages[0][3]).to eq('test.test')
@@ -203,7 +203,7 @@ describe WampClient::Session do
       request_id = session._requests[:subscribe].keys.first
 
       # Generate server response
-      subscribed = WampClient::Message::Error.new(WampClient::Message::Types.SUBSCRIBE,
+      subscribed = WampClient::Message::Error.new(WampClient::Message::Types::SUBSCRIBE,
                                                   request_id, {fail:true}, 'this.failed')
       transport.receive_message(subscribed.payload)
 
@@ -281,7 +281,7 @@ describe WampClient::Session do
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types.UNSUBSCRIBE)
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::UNSUBSCRIBE)
       expect(transport.messages[0][1]).to eq(@request_id)
       expect(transport.messages[0][2]).to eq(@subscription.id)
 
@@ -358,7 +358,7 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      subscribed = WampClient::Message::Error.new(WampClient::Message::Types.UNSUBSCRIBE,
+      subscribed = WampClient::Message::Error.new(WampClient::Message::Types::UNSUBSCRIBE,
                                                   @request_id, {fail:true}, 'this.failed')
       transport.receive_message(subscribed.payload)
 
@@ -395,7 +395,7 @@ describe WampClient::Session do
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types.PUBLISH)
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::PUBLISH)
       expect(transport.messages[0][1]).to eq(@request_id)
       expect(transport.messages[0][2]).to eq({acknowledge:true})
 
@@ -465,7 +465,7 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      subscribed = WampClient::Message::Error.new(WampClient::Message::Types.PUBLISH,
+      subscribed = WampClient::Message::Error.new(WampClient::Message::Types::PUBLISH,
                                                   @request_id, {fail:true}, 'this.failed')
       transport.receive_message(subscribed.payload)
 
@@ -478,5 +478,127 @@ describe WampClient::Session do
 
   end
 
+  describe 'register' do
+
+    before(:each) do
+      # Check Exception
+      expect { session.register('test.test', nil, {test: 1}, nil) }.to raise_exception("Session must be open to call 'register'")
+
+      session.join('test')
+      welcome = WampClient::Message::Welcome.new(1234, {})
+      transport.receive_message(welcome.payload)
+      transport.messages = []
+    end
+
+    it 'adds register request to queue' do
+      session.register('test.test', nil, {test: 1}, nil)
+
+      expect(session._requests[:register].count).to eq(1)
+      request_id = session._requests[:register].keys.first
+
+      # Check the transport messages
+      expect(transport.messages.count).to eq(1)
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::REGISTER)
+      expect(transport.messages[0][1]).to eq(request_id)
+      expect(transport.messages[0][2]).to eq({test: 1})
+      expect(transport.messages[0][3]).to eq('test.test')
+
+      # Check the request dictionary
+      expect(session._requests[:register][request_id][:p]).to eq('test.test')
+      expect(session._requests[:register][request_id][:o]).to eq({test: 1})
+
+      # Check the subscriptions
+      expect(session._registrations.count).to eq(0)
+    end
+
+    it 'confirms register' do
+      count = 0
+      callback = lambda do |registration, error, details|
+        count += 1
+
+        expect(registration).not_to be_nil
+        expect(registration.id).to eq(3456)
+        expect(error).to be_nil
+        expect(details).to be_nil
+      end
+
+      session.register('test.test', nil, {test: 1}, callback)
+      request_id = session._requests[:register].keys.first
+
+      expect(count).to eq(0)
+
+      # Generate server response
+      registered = WampClient::Message::Registered.new(request_id, 3456)
+      transport.receive_message(registered.payload)
+
+      expect(count).to eq(1)
+
+      # Check that the requests are empty
+      expect(session._requests[:register].count).to eq(0)
+
+      # Check the subscriptions
+      expect(session._registrations.count).to eq(1)
+      expect(session._registrations[3456].procedure).to eq('test.test')
+      expect(session._registrations[3456].options).to eq({test: 1})
+
+    end
+
+    it 'errors confirming a registration' do
+      count = 0
+      callback = lambda do |registration, error, details|
+        count += 1
+
+        expect(registration).not_to be_nil
+        expect(error).to eq('this.failed')
+        expect(details).to eq({fail:true})
+      end
+
+      session.register('test.test', nil, {test: 1}, callback)
+      request_id = session._requests[:register].keys.first
+
+      # Generate server response
+      subscribed = WampClient::Message::Error.new(WampClient::Message::Types::REGISTER,
+                                                  request_id, {fail:true}, 'this.failed')
+      transport.receive_message(subscribed.payload)
+
+      expect(count).to eq(1)
+
+      # Check that the requests are empty
+      expect(session._requests[:register].count).to eq(0)
+
+      # Check the subscriptions
+      expect(session._registrations.count).to eq(0)
+    end
+
+    it 'receives an invocation' do
+
+      count = 0
+      handler = lambda do |args, kwargs, details|
+        count += 1
+
+        expect(details).to eq({test:1, request:7890})
+        expect(args).to eq([2])
+        expect(kwargs).to eq({param: 'value'})
+      end
+
+      session.register('test.test', handler, {test: 1})
+      request_id = session._requests[:register].keys.first
+
+      expect(count).to eq(0)
+
+      # Generate server response
+      registered = WampClient::Message::Registered.new(request_id, 3456)
+      transport.receive_message(registered.payload)
+      expect(count).to eq(0)
+
+      # Generate server event
+      invocation = WampClient::Message::Invocation.new(7890, 3456, {test:1}, [2], {param: 'value'})
+      transport.receive_message(invocation.payload)
+
+      expect(count).to eq(1)
+
+    end
+
+  end
 
 end

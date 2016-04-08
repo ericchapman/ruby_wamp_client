@@ -24,8 +24,9 @@ Or install it yourself as:
 
 ## Usage
 
+### Topic Subscriptions and Publications
 
-### Subscribe
+#### Subscribe
 This method subscribes to a topic.  The prototype for the method is
 
 ```ruby
@@ -63,7 +64,7 @@ end
 session.subscribe('com.example.topic', handler, {}, callback)
 ```
 
-### Unsubscribe
+#### Unsubscribe
 This method unsubscribes from a topic.  The prototype for the method is as follows
 
 ```ruby
@@ -98,7 +99,7 @@ session.unsubscribe(@subscription)
 
 ```
 
-### Publish
+#### Publish
 This method publishes an event to all of the subscribers.  The prototype for the method is
 
 ```ruby
@@ -132,6 +133,46 @@ session.publish('com.example.topic', [15], {param: value}, {acknowledge: true}, 
 Options are
 
  - acknowledge - set to "true" if you want the Broker to acknowledge if the Publish was successful or not
+
+### Procedure Registrations and Calls
+
+#### Register
+This method registers to a procedure.  The prototype for the method is
+
+```ruby
+register(procedure, handler, options={}, callback=nil)
+```
+
+where the parameters are defined as
+
+ - procedure [String] - The procedure to register for
+ - handler [lambda] - The handler(args, kwargs, details) when a invocation is received
+ - options [Hash] - The options for the registration
+ - callback [lambda] - The callback(registration, error, details) called to signal if the registration was a success or not
+
+To register, do the following
+
+```ruby
+handler = lambda do |args, kwargs, details|
+  # TODO: Do something
+end
+
+session.register('com.example.procedure', handler)
+```
+
+If you would like confirmation of the success of the registration, do the following
+
+```ruby
+callback = lambda do |registration, error, details|
+  # TODO: Do something
+end
+
+handler = lambda do |args, kwargs, details|
+  # TODO: Do something
+end
+
+session.register('com.example.procedure', handler, {}, callback)
+```
 
 ## Contributing
 

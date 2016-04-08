@@ -1,6 +1,7 @@
 require 'wamp_client/transport'
 require 'wamp_client/message'
 require 'wamp_client/check'
+require 'wamp_client/version'
 
 module WampClient
 
@@ -59,6 +60,24 @@ module WampClient
     end
 
   end
+
+  class Registration
+    attr_accessor :procedure, :handler, :options, :session, :id
+
+    def initialize(procedure, handler, options, session, id)
+      self.procedure = procedure
+      self.handler = handler
+      self.options = options
+      self.session = session
+      self.id = id
+    end
+
+    def unregister
+      self.session.unregister(self)
+    end
+
+  end
+
 
   class Session
     include WampClient::Check
@@ -132,6 +151,7 @@ module WampClient
 
       details = {}
       details[:roles] = WAMP_FEATURES
+      details[:agent] = "Ruby-WampClient-#{WampClient::VERSION}"
 
       # Send Hello message
       hello = WampClient::Message::Hello.new(realm, details)
@@ -201,12 +221,14 @@ module WampClient
 
           # Process Errors
           if message.is_a? WampClient::Message::Error
-            if message.request_type == WampClient::Message::Types.SUBSCRIBE
+            if message.request_type == WampClient::Message::Types::SUBSCRIBE
               self._process_SUBSCRIBE_error(message)
-            elsif message.request_type == WampClient::Message::Types.UNSUBSCRIBE
+            elsif message.request_type == WampClient::Message::Types::UNSUBSCRIBE
               self._process_UNSUBSCRIBE_error(message)
-            elsif message.request_type == WampClient::Message::Types.PUBLISH
+            elsif message.request_type == WampClient::Message::Types::PUBLISH
               self._process_PUBLISH_error(message)
+            elsif message.request_type == WampClient::Message::Types::REGISTER
+              self._process_REGISTER_error(message)
             else
               # TODO: Some Error??  Not Implemented yet
             end
@@ -221,6 +243,10 @@ module WampClient
               self._process_PUBLISHED(message)
             elsif message.is_a? WampClient::Message::Event
               self._process_EVENT(message)
+            elsif message.is_a? WampClient::Message::Registered
+              self._process_REGISTERED(message)
+            elsif message.is_a? WampClient::Message::Invocation
+              self._process_INVOCATION(message)
             else
               # TODO: Some Error??  Not Implemented yet
             end
@@ -428,6 +454,90 @@ module WampClient
         c.call(s, e, d) if c
       end
 
+    end
+
+    #endregion
+
+    #region Register Logic
+
+    # Register to a procedure
+    # @param procedure [String] The procedure to register for
+    # @param handler [lambda] The handler(args, kwargs, details) when a invocation is received
+    # @param options [Hash] The options for the registration
+    # @param callback [lambda] The callback(registration, error, details) called to signal if the registration was a success or not
+    def register(procedure, handler, options={}, callback=nil)
+      unless is_open?
+        raise RuntimeError, "Session must be open to call 'register'"
+      end
+
+      self.class.check_uri('procedure', procedure)
+      self.class.check_dict('options', options)
+
+      # Create a new registration request
+      request = self._generate_id
+      self._requests[:register][request] = {p: procedure, h: handler, o: options, c: callback}
+
+      # Send the message
+      register = WampClient::Message::Register.new(request, options, procedure)
+      self.transport.send_message(register.payload)
+    end
+
+    # Processes the response to a register request
+    # @param msg [WampClient::Message::Registered] The response from the subscribe
+    def _process_REGISTERED(msg)
+
+      request_id = msg.register_request
+      registration_id = msg.registration
+
+      # Remove the pending subscription, add it to the registered ones, and inform the caller
+      r = self._requests[:register].delete(request_id)
+      if r
+        n_r = Registration.new(r[:p], r[:h], r[:o], self, registration_id)
+        self._registrations[registration_id] = n_r
+        c = r[:c]
+        c.call(n_r, nil, nil) if c
+      end
+
+    end
+
+    # Processes an error from a request
+    # @param msg [WampClient::Message::Error] The response from the register
+    def _process_REGISTER_error(msg)
+
+      r_id = msg.request_request
+      d = msg.details
+      e = msg.error
+
+      # Remove the pending registration and inform the caller of the failure
+      r = self._requests[:register].delete(r_id)
+      if r
+        c = r[:c]
+        c.call(r, e, d) if c
+      end
+
+    end
+
+    # Processes and event from the broker
+    # @param msg [WampClient::Message::Invocation] An procedure that was called
+    def _process_INVOCATION(msg)
+
+      request = msg.request
+      registration = msg.registered_registration
+      details = msg.details || {}
+      args = msg.call_arguments
+      kwargs = msg.call_argumentskw
+
+      details[:request] = request
+
+      r = self._registrations[registration]
+      value = nil
+      if r
+        h = r.handler
+        value = h.call(args, kwargs, details) if h
+        # TODO: Return logic (support async calls and complex responses)
+      end
+
+      value
     end
 
     #endregion

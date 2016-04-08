@@ -5,27 +5,27 @@ require 'wamp_client/check'
 module WampClient
   module Message
 
-    class Types
-      def self.HELLO; 1 end
-      def self.WELCOME; 2 end
-      def self.ABORT; 3 end
-      def self.GOODBYE; 6 end
-      def self.ERROR; 8 end
-      def self.PUBLISH; 16 end
-      def self.PUBLISHED; 17 end
-      def self.SUBSCRIBE; 32 end
-      def self.SUBSCRIBED; 33 end
-      def self.UNSUBSCRIBE; 34 end
-      def self.UNSUBSCRIBED; 35 end
-      def self.EVENT; 36 end
-      def self.CALL; 48 end
-      def self.RESULT; 50 end
-      def self.REGISTER; 64 end
-      def self.REGISTERED; 65 end
-      def self.UNREGISTER; 66 end
-      def self.UNREGISTERED; 67 end
-      def self.INVOCATION; 68 end
-      def self.YIELD; 70 end
+    module Types
+      HELLO = 1
+      WELCOME = 2
+      ABORT = 3
+      GOODBYE = 6
+      ERROR = 8
+      PUBLISH = 16
+      PUBLISHED = 17
+      SUBSCRIBE = 32
+      SUBSCRIBED = 33
+      UNSUBSCRIBE = 34
+      UNSUBSCRIBED = 35
+      EVENT = 36
+      CALL = 48
+      RESULT = 50
+      REGISTER = 64
+      REGISTERED = 65
+      UNREGISTER = 66
+      UNREGISTERED = 67
+      INVOCATION = 68
+      YIELD = 70
     end
 
     class Base
@@ -38,45 +38,45 @@ module WampClient
       # @param params [Array]
       def self.parse(params)
         object = nil
-        if params[0] == Types.HELLO
+        if params[0] == Types::HELLO
           object = WampClient::Message::Hello.parse(params)
-        elsif params[0] == Types.WELCOME
+        elsif params[0] == Types::WELCOME
           object = WampClient::Message::Welcome.parse(params)
-        elsif params[0] == Types.ABORT
+        elsif params[0] == Types::ABORT
           object = WampClient::Message::Abort.parse(params)
-        elsif params[0] == Types.GOODBYE
+        elsif params[0] == Types::GOODBYE
           object = WampClient::Message::Goodbye.parse(params)
-        elsif params[0] == Types.ERROR
+        elsif params[0] == Types::ERROR
           object = WampClient::Message::Error.parse(params)
-        elsif params[0] == Types.PUBLISH
+        elsif params[0] == Types::PUBLISH
           object = WampClient::Message::Publish.parse(params)
-        elsif params[0] == Types.PUBLISHED
+        elsif params[0] == Types::PUBLISHED
           object = WampClient::Message::Published.parse(params)
-        elsif params[0] == Types.SUBSCRIBE
+        elsif params[0] == Types::SUBSCRIBE
           object = WampClient::Message::Subscribe.parse(params)
-        elsif params[0] == Types.SUBSCRIBED
+        elsif params[0] == Types::SUBSCRIBED
           object = WampClient::Message::Subscribed.parse(params)
-        elsif params[0] == Types.UNSUBSCRIBE
+        elsif params[0] == Types::UNSUBSCRIBE
           object = WampClient::Message::Unsubscribe.parse(params)
-        elsif params[0] == Types.UNSUBSCRIBED
+        elsif params[0] == Types::UNSUBSCRIBED
           object = WampClient::Message::Unsubscribed.parse(params)
-        elsif params[0] == Types.EVENT
+        elsif params[0] == Types::EVENT
           object = WampClient::Message::Event.parse(params)
-        elsif params[0] == Types.CALL
+        elsif params[0] == Types::CALL
           object = WampClient::Message::Call.parse(params)
-        elsif params[0] == Types.RESULT
+        elsif params[0] == Types::RESULT
           object = WampClient::Message::Result.parse(params)
-        elsif params[0] == Types.REGISTER
+        elsif params[0] == Types::REGISTER
           object = WampClient::Message::Register.parse(params)
-        elsif params[0] == Types.REGISTERED
+        elsif params[0] == Types::REGISTERED
           object = WampClient::Message::Registered.parse(params)
-        elsif params[0] == Types.UNREGISTER
+        elsif params[0] == Types::UNREGISTER
           object = WampClient::Message::Unregister.parse(params)
-        elsif params[0] == Types.UNREGISTERED
+        elsif params[0] == Types::UNREGISTERED
           object = WampClient::Message::Unregistered.parse(params)
-        elsif params[0] == Types.INVOCATION
+        elsif params[0] == Types::INVOCATION
           object = WampClient::Message::Invocation.parse(params)
-        elsif params[0] == Types.YIELD
+        elsif params[0] == Types::YIELD
           object = WampClient::Message::Yield.parse(params)
         end
 
@@ -104,7 +104,7 @@ module WampClient
       end
 
       def self.type
-        Types.HELLO
+        Types::HELLO
       end
 
       def self.parse(params)
@@ -154,7 +154,7 @@ module WampClient
       end
 
       def self.type
-        Types.WELCOME
+        Types::WELCOME
       end
 
       def self.parse(params)
@@ -204,7 +204,7 @@ module WampClient
       end
 
       def self.type
-        Types.ABORT
+        Types::ABORT
       end
 
       def self.parse(params)
@@ -254,7 +254,7 @@ module WampClient
       end
 
       def self.type
-        Types.GOODBYE
+        Types::GOODBYE
       end
 
       def self.parse(params)
@@ -318,7 +318,7 @@ module WampClient
       end
 
       def self.type
-        Types.ERROR
+        Types::ERROR
       end
 
       def self.parse(params)
@@ -403,7 +403,7 @@ module WampClient
       end
 
       def self.type
-        Types.PUBLISH
+        Types::PUBLISH
       end
 
       def self.parse(params)
@@ -472,7 +472,7 @@ module WampClient
       end
 
       def self.type
-        Types.PUBLISHED
+        Types::PUBLISHED
       end
 
       def self.parse(params)
@@ -525,7 +525,7 @@ module WampClient
       end
 
       def self.type
-        Types.SUBSCRIBE
+        Types::SUBSCRIBE
       end
 
       def self.parse(params)
@@ -580,7 +580,7 @@ module WampClient
       end
 
       def self.type
-        Types.SUBSCRIBED
+        Types::SUBSCRIBED
       end
 
       def self.parse(params)
@@ -630,7 +630,7 @@ module WampClient
       end
 
       def self.type
-        Types.UNSUBSCRIBE
+        Types::UNSUBSCRIBE
       end
 
       def self.parse(params)
@@ -677,7 +677,7 @@ module WampClient
       end
 
       def self.type
-        Types.UNSUBSCRIBED
+        Types::UNSUBSCRIBED
       end
 
       def self.parse(params)
@@ -733,7 +733,7 @@ module WampClient
       end
 
       def self.type
-        Types.EVENT
+        Types::EVENT
       end
 
       def self.parse(params)
@@ -813,7 +813,7 @@ module WampClient
       end
 
       def self.type
-        Types.CALL
+        Types::CALL
       end
 
       def self.parse(params)
@@ -890,7 +890,7 @@ module WampClient
       end
 
       def self.type
-        Types.RESULT
+        Types::RESULT
       end
 
       def self.parse(params)
@@ -957,7 +957,7 @@ module WampClient
       end
 
       def self.type
-        Types.REGISTER
+        Types::REGISTER
       end
 
       def self.parse(params)
@@ -1012,7 +1012,7 @@ module WampClient
       end
 
       def self.type
-        Types.REGISTERED
+        Types::REGISTERED
       end
 
       def self.parse(params)
@@ -1062,7 +1062,7 @@ module WampClient
       end
 
       def self.type
-        Types.UNREGISTER
+        Types::UNREGISTER
       end
 
       def self.parse(params)
@@ -1109,7 +1109,7 @@ module WampClient
       end
 
       def self.type
-        Types.UNREGISTERED
+        Types::UNREGISTERED
       end
 
       def self.parse(params)
@@ -1165,7 +1165,7 @@ module WampClient
       end
 
       def self.type
-        Types.INVOCATION
+        Types::INVOCATION
       end
 
       def self.parse(params)
@@ -1242,7 +1242,7 @@ module WampClient
       end
 
       def self.type
-        Types.YIELD
+        Types::YIELD
       end
 
       def self.parse(params)
