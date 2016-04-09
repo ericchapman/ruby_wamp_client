@@ -365,7 +365,7 @@ module WampClient
       if s
 
         details = {}
-        details[:topic] = s[:t] unless details['topic']
+        details[:topic] = s[:t] unless details[:topic]
         details[:type] = 'subscribe'
 
         n_s = Subscription.new(s[:t], s[:h], s[:o], self, msg.subscription)
@@ -385,7 +385,7 @@ module WampClient
       if s
 
         details = msg.details || {}
-        details[:topic] = s[:t] unless details['topic']
+        details[:topic] = s[:t] unless details[:topic]
         details[:type] = 'subscribe'
 
         c = s[:c]
@@ -465,7 +465,7 @@ module WampClient
       if s
 
         details = msg.details || {}
-        details[:topic] = s[:s].topic unless details['topic']
+        details[:topic] = s[:s].topic unless details[:topic]
         details[:type] = 'unsubscribe'
 
         c = s[:c]
@@ -531,7 +531,7 @@ module WampClient
       if s
 
         details = msg.details || {}
-        details[:topic] = s[:t] unless details['topic']
+        details[:topic] = s[:t] unless details[:topic]
         details[:type] = 'publish'
 
         c = s[:c]
@@ -596,7 +596,7 @@ module WampClient
       if r
 
         details = msg.details || {}
-        details[:procedure] = r[:p] unless details['procedure']
+        details[:procedure] = r[:p] unless details[:procedure]
         details[:type] = 'register'
 
         c = r[:c]
@@ -693,7 +693,7 @@ module WampClient
       if r
 
         details = msg.details || {}
-        details[:procedure] = r[:r].procedure unless details['procedure']
+        details[:procedure] = r[:r].procedure unless details[:procedure]
         details[:type] = 'unregister'
 
         c = r[:c]
@@ -761,7 +761,7 @@ module WampClient
       if call
 
         details = msg.details || {}
-        details[:procedure] = call[:p] unless details['procedure']
+        details[:procedure] = call[:p] unless details[:procedure]
         details[:type] = 'call'
 
         c = call[:c]
