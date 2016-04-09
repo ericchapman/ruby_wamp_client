@@ -28,6 +28,10 @@ Or install it yourself as:
 The connection object is used to instantiate and maintain a WAMP session as well as the underlying transport.  A user
 creates a connection and then operates on the session once the session has been established.
 
+Note that once "connection.open" is called, the library will automatically attempt to reconnect if the connection
+closes for any reason.  Calling "connection.close" will stop the reconnect logic as well as close the connection if it
+is open
+
 #### Creating a connection
 A connection can be created as follows
 
