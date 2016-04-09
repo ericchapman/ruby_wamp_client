@@ -24,10 +24,125 @@ Or install it yourself as:
 
 ## Usage
 
+### Connection
+The connection object is used to instantiate and maintain a WAMP session as well as the underlying transport.  A user
+creates a connection and then operates on the session once the session has been established.
+
+#### Creating a connection
+A connection can be created as follows
+
+```ruby
+require 'wamp_client'
+
+options = {
+    uri: 'ws://127.0.0.1:8080/ws',
+    realm: 'realm1'
+}
+connection = WampClient::Connection.new(options)
+
+connection.on_join do |session, details|
+  puts "Session Open"
+
+  # Register for something
+  def add(args, kwargs, details)
+    args[0] + args[1]
+  end
+  session.register('com.example.procedure', method(:add)) do |registration, error, details|
+
+    # Call It
+    session.call('com.example.procedure', [3,4]) do |result, error, details|
+      if result
+        puts result.args[0] # => 7
+      end
+    end
+
+  end
+
+
+end
+
+connection.open
+```
+
+#### Closing a connection
+A connection is closed by simply calling "close"
+
+```ruby
+connection.close
+```
+
+Note that the connection will still call "on_leave" and "on_disconnect" as it closes the session and the transport
+
+#### Callbacks
+A session has the following callbacks
+
+**on_connect** - Called when the transport is opened
+```ruby
+connection.on_connect do
+
+end
+```
+
+**on_join** - Called when the session is established
+```ruby
+connection.on_join do |session, details|
+
+end
+```
+
+**on_leave** - Called when the session is terminated
+```ruby
+connection.on_leave do |reason, details|
+
+end
+```
+
+**on_disconnect** - Called when the connection is terminated
+```ruby
+connection.on_disconnect do |reason|
+
+end
+```
+
+**oon_challenge** - Called when an authentication challenge is created
+```ruby
+connection.on_challenge do |authmethod, extra|
+
+end
+```
+
 ### Authentication
+The library supports authentication.  Here is how to perform the different methods
 
 #### WAMPCRA
+To perform WAMP CRA, do the following
 
+```ruby
+require 'wamp_client'
+
+options = {
+    uri: 'ws://127.0.0.1:8080/ws',
+    realm: 'realm1',
+    authid: 'joe',
+    authmethods: ['wampcra']
+}
+connection = WampClient::Connection.new(options)
+
+connection.on_challenge do |authmethod, extra|
+  puts 'Challenge'
+  if authmethod == 'wampcra'
+    WampClient::Auth::Cra.sign('secret', extra[:challenge])
+  else
+    raise RuntimeError, "Unsupported auth method #{authmethod}"
+  end
+end
+
+connection.on_join do |session, details|
+  puts "Session Open"
+end
+
+connection.open
+```
 
 ### Handlers and Callbacks
 This library makes extensive use of "blocks", "lambdas", "procs", and method pointers for any returned values because

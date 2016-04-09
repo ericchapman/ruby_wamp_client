@@ -406,7 +406,7 @@ messages.each do |message|
     if param[:required]
       source_file += "        payload.push(self.#{param[:name]})\n"
     else
-      source_file += "\n        return payload if self.#{param[:name]}.nil?\n"
+      source_file += "\n        return payload if (self.#{param[:name]}.nil? or self.#{param[:name]}.empty?)\n"
       source_file += "        payload.push(self.#{param[:name]})\n"
     end
   end

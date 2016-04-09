@@ -192,7 +192,7 @@ module WampClient
 
     # Leaves the WAMP Router
     # @param reason [String] URI signalling the reason for leaving
-    def leave(reason='wamp.close.normal', message=nil)
+    def leave(reason='wamp.close.normal', message='user initiated')
       unless is_open?
         raise RuntimeError, "Session must be opened to call 'leave'"
       end

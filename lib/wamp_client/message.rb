@@ -325,10 +325,10 @@ module WampClient
         payload.push(self.details)
         payload.push(self.error)
 
-        return payload if self.arguments.nil?
+        return payload if (self.arguments.nil? or self.arguments.empty?)
         payload.push(self.arguments)
 
-        return payload if self.argumentskw.nil?
+        return payload if (self.argumentskw.nil? or self.argumentskw.empty?)
         payload.push(self.argumentskw)
 
         payload
@@ -385,10 +385,10 @@ module WampClient
         payload.push(self.options)
         payload.push(self.topic)
 
-        return payload if self.arguments.nil?
+        return payload if (self.arguments.nil? or self.arguments.empty?)
         payload.push(self.arguments)
 
-        return payload if self.argumentskw.nil?
+        return payload if (self.argumentskw.nil? or self.argumentskw.empty?)
         payload.push(self.argumentskw)
 
         payload
@@ -670,10 +670,10 @@ module WampClient
         payload.push(self.published_publication)
         payload.push(self.details)
 
-        return payload if self.publish_arguments.nil?
+        return payload if (self.publish_arguments.nil? or self.publish_arguments.empty?)
         payload.push(self.publish_arguments)
 
-        return payload if self.publish_argumentskw.nil?
+        return payload if (self.publish_argumentskw.nil? or self.publish_argumentskw.empty?)
         payload.push(self.publish_argumentskw)
 
         payload
@@ -730,10 +730,10 @@ module WampClient
         payload.push(self.options)
         payload.push(self.procedure)
 
-        return payload if self.arguments.nil?
+        return payload if (self.arguments.nil? or self.arguments.empty?)
         payload.push(self.arguments)
 
-        return payload if self.argumentskw.nil?
+        return payload if (self.argumentskw.nil? or self.argumentskw.empty?)
         payload.push(self.argumentskw)
 
         payload
@@ -787,10 +787,10 @@ module WampClient
         payload.push(self.call_request)
         payload.push(self.details)
 
-        return payload if self.yield_arguments.nil?
+        return payload if (self.yield_arguments.nil? or self.yield_arguments.empty?)
         payload.push(self.yield_arguments)
 
-        return payload if self.yield_argumentskw.nil?
+        return payload if (self.yield_argumentskw.nil? or self.yield_argumentskw.empty?)
         payload.push(self.yield_argumentskw)
 
         payload
@@ -1027,10 +1027,10 @@ module WampClient
         payload.push(self.registered_registration)
         payload.push(self.details)
 
-        return payload if self.call_arguments.nil?
+        return payload if (self.call_arguments.nil? or self.call_arguments.empty?)
         payload.push(self.call_arguments)
 
-        return payload if self.call_argumentskw.nil?
+        return payload if (self.call_argumentskw.nil? or self.call_argumentskw.empty?)
         payload.push(self.call_argumentskw)
 
         payload
@@ -1084,10 +1084,10 @@ module WampClient
         payload.push(self.invocation_request)
         payload.push(self.options)
 
-        return payload if self.arguments.nil?
+        return payload if (self.arguments.nil? or self.arguments.empty?)
         payload.push(self.arguments)
 
-        return payload if self.argumentskw.nil?
+        return payload if (self.argumentskw.nil? or self.argumentskw.empty?)
         payload.push(self.argumentskw)
 
         payload
