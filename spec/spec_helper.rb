@@ -3,6 +3,9 @@ SimpleCov.start
 
 require_relative '../lib/wamp_client'
 
+require 'codecov'
+SimpleCov.formatter = SimpleCov::Formatter::Codecov
+
 require 'wamp_client'
 
 module SpecHelper

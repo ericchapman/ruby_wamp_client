@@ -1,10 +1,16 @@
 # WampClient
 
-**!!!!UNDER DEVELOPMENT!!!!**
+[![Circle CI](https://circleci.com/gh/ericchapman/ruby_wamp_client/tree/master.svg?&style=shield&circle-token=92813c17f9c9510c4c644e41683e7ba2572e0b2a)](https://circleci.com/gh/ericchapman/ruby_wamp_client/tree/master)
+[![Codecov](https://img.shields.io/codecov/c/github/ericchapman/ruby_wamp_client/master.svg)](https://codecov.io/github/ericchapman/ruby_wamp_client)
 
 Client for talking to a WAMP Router.  This is defined at
 
     https://tools.ietf.org/html/draft-oberstet-hybi-tavendo-wamp-02
+
+## Revision History
+
+ - v0.0.1:
+   - Initial Release
 
 ## Installation
 
