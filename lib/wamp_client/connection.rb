@@ -1,3 +1,30 @@
+=begin
+
+Copyright (c) 2016 Eric Chapman
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+=end
+
 require 'websocket-eventmachine-client'
 require 'wamp_client/session'
 require 'wamp_client/transport'
@@ -53,7 +80,9 @@ module WampClient
     # @param options [Hash] The different options to pass to the connection
     # @option options [String] :uri The uri of the WAMP router to connect to
     # @option options [String] :realm The realm to connect to
-    # @option options [String] :protocol The protocol (default if wamp.2.json)
+    # @option options [String,nil] :protocol The protocol (default if wamp.2.json)
+    # @option options [String,nil] :authid The id to authenticate with
+    # @option options [Array, nil] :authmethods The different auth methods that the client supports
     # @option options [Hash] :headers Custom headers to include during the connection
     # @option options [WampClient::Serializer::Base] :serializer The serializer to use (default is json)
     def initialize(options)

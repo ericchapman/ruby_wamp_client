@@ -3,8 +3,10 @@ SimpleCov.start
 
 require_relative '../lib/wamp_client'
 
-require 'codecov'
-SimpleCov.formatter = SimpleCov::Formatter::Codecov
+if ENV['CODECOV_TOKEN']
+  require 'codecov'
+  SimpleCov.formatter = SimpleCov::Formatter::Codecov
+end
 
 require 'wamp_client'
 

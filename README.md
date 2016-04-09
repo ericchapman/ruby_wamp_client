@@ -1,5 +1,6 @@
 # WampClient
 
+[![Gem Version](https://badge.fury.io/rb/wamp_client.svg)](https://badge.fury.io/rb/wamp_client)
 [![Circle CI](https://circleci.com/gh/ericchapman/ruby_wamp_client/tree/master.svg?&style=shield&circle-token=92813c17f9c9510c4c644e41683e7ba2572e0b2a)](https://circleci.com/gh/ericchapman/ruby_wamp_client/tree/master)
 [![Codecov](https://img.shields.io/codecov/c/github/ericchapman/ruby_wamp_client/master.svg)](https://codecov.io/github/ericchapman/ruby_wamp_client)
 
