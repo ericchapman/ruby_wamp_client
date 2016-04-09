@@ -1,6 +1,6 @@
 machine:
   ruby:
-    version: rbx-2.0.0-p481
+    version: rbx-2.2.0
 
 test:
   post:
