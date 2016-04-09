@@ -37,7 +37,13 @@ module WampClient
       self.options = options || {}
     end
 
+    def open
 
+    end
+
+    def close
+
+    end
 
   end
 end

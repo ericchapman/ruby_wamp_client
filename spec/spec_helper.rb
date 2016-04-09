@@ -21,7 +21,13 @@ module SpecHelper
     end
 
     def receive_message(msg)
-      @on_message.call(msg) unless @on_message.nil?
+
+      # Emulate serialization/deserialization
+      serialize = self.serializer.serialize(msg)
+      deserialize = self.serializer.deserialize(serialize)
+
+      # Call the received message
+      @on_message.call(deserialize) unless @on_message.nil?
     end
 
   end

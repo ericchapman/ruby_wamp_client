@@ -32,7 +32,7 @@ module WampClient
       end
 
       def deserialize(string)
-        JSON.parse string
+        JSON.parse(string, {:symbolize_names => true})
       end
 
     end

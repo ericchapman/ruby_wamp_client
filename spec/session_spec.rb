@@ -195,14 +195,14 @@ describe WampClient::Session do
 
         expect(subscription).to be_nil
         expect(error[:error]).to eq('this.failed')
-        expect(details).to eq({fail:true, topic: 'test.topic', type: 'subscribe'})
+        expect(details).to eq({fail: true, topic: 'test.topic', type: 'subscribe'})
       end
 
       request_id = session._requests[:subscribe].keys.first
 
       # Generate server response
       error = WampClient::Message::Error.new(WampClient::Message::Types::SUBSCRIBE,
-                                             request_id, {fail:true}, 'this.failed')
+                                             request_id, {fail: true}, 'this.failed')
       transport.receive_message(error.payload)
 
       expect(count).to eq(1)
@@ -342,7 +342,7 @@ describe WampClient::Session do
 
         expect(subscription).to be_nil
         expect(error[:error]).to eq('this.failed')
-        expect(details).to eq({fail:true, topic: 'test.topic', type: 'unsubscribe'})
+        expect(details).to eq({fail: true, topic: 'test.topic', type: 'unsubscribe'})
       end
 
       @request_id = session._requests[:unsubscribe].keys.first
@@ -351,7 +351,7 @@ describe WampClient::Session do
 
       # Generate Server Response
       error = WampClient::Message::Error.new(WampClient::Message::Types::UNSUBSCRIBE,
-                                             @request_id, {fail:true}, 'this.failed')
+                                             @request_id, {fail: true}, 'this.failed')
       transport.receive_message(error.payload)
 
       expect(count).to eq(1)
@@ -444,7 +444,7 @@ describe WampClient::Session do
 
         expect(publication).to be_nil
         expect(error[:error]).to eq('this.failed')
-        expect(details).to eq({fail:true, topic: 'test.topic', type: 'publish'})
+        expect(details).to eq({fail: true, topic: 'test.topic', type: 'publish'})
       end
 
       @request_id = session._requests[:publish].keys.first
@@ -453,7 +453,7 @@ describe WampClient::Session do
 
       # Generate Server Response
       error = WampClient::Message::Error.new(WampClient::Message::Types::PUBLISH,
-                                             @request_id, {fail:true}, 'this.failed')
+                                             @request_id, {fail: true}, 'this.failed')
       transport.receive_message(error.payload)
 
       expect(count).to eq(1)
@@ -536,14 +536,14 @@ describe WampClient::Session do
 
         expect(registration).to be_nil
         expect(error[:error]).to eq('this.failed')
-        expect(details).to eq({fail:true, procedure: 'test.procedure', type: 'register'})
+        expect(details).to eq({fail: true, procedure: 'test.procedure', type: 'register'})
       end
 
       request_id = session._requests[:register].keys.first
 
       # Generate server response
       error = WampClient::Message::Error.new(WampClient::Message::Types::REGISTER,
-                                             request_id, {fail:true}, 'this.failed')
+                                             request_id, {fail: true}, 'this.failed')
       transport.receive_message(error.payload)
 
       expect(count).to eq(1)
@@ -756,7 +756,7 @@ describe WampClient::Session do
 
         expect(registration).to be_nil
         expect(error[:error]).to eq('this.failed')
-        expect(details).to eq({fail:true, procedure:'test.procedure', type: 'unregister'})
+        expect(details).to eq({fail: true, procedure:'test.procedure', type: 'unregister'})
       end
 
       @request_id = session._requests[:unregister].keys.first
@@ -765,7 +765,7 @@ describe WampClient::Session do
 
       # Generate Server Response
       error = WampClient::Message::Error.new(WampClient::Message::Types::UNREGISTER,
-                                             @request_id, {fail:true}, 'this.failed')
+                                             @request_id, {fail: true}, 'this.failed')
       transport.receive_message(error.payload)
 
       expect(count).to eq(1)
@@ -847,7 +847,7 @@ describe WampClient::Session do
 
         expect(result).to be_nil
         expect(error[:error]).to eq('this.failed')
-        expect(details).to eq({fail:true, procedure: 'test.procedure', type: 'call'})
+        expect(details).to eq({fail: true, procedure: 'test.procedure', type: 'call'})
       end
 
       @request_id = session._requests[:call].keys.first
@@ -856,7 +856,7 @@ describe WampClient::Session do
 
       # Generate Server Response
       error = WampClient::Message::Error.new(WampClient::Message::Types::CALL,
-                                             @request_id, {fail:true}, 'this.failed')
+                                             @request_id, {fail: true}, 'this.failed')
       transport.receive_message(error.payload)
 
       expect(count).to eq(1)
@@ -949,14 +949,14 @@ describe WampClient::Session do
 
       session.on_challenge do |authmethod, extra|
         expect(authmethod).to eq('wampcra')
-        WampClient::Auth::Cra.sign(secret, extra['challenge'])
+        WampClient::Auth::Cra.sign(secret, extra[:challenge])
       end
     end
 
     it 'challenge => authenticate' do
 
       # Send the challenge
-      challenge_msg = WampClient::Message::Challenge.new('wampcra', {'challenge' => challenge})
+      challenge_msg = WampClient::Message::Challenge.new('wampcra', {challenge: challenge})
       transport.receive_message(challenge_msg.payload)
 
       # Check the transport messages
@@ -970,7 +970,7 @@ describe WampClient::Session do
     it 'accepts a wampcra challenge' do
 
       # Send the challenge
-      challenge_msg = WampClient::Message::Challenge.new('wampcra', {'challenge' => challenge})
+      challenge_msg = WampClient::Message::Challenge.new('wampcra', {challenge: challenge})
       transport.receive_message(challenge_msg.payload)
 
       # Send welcome message
@@ -986,7 +986,7 @@ describe WampClient::Session do
     it 'rejects a wampcra challenge' do
 
       # Send the challenge
-      challenge_msg = WampClient::Message::Challenge.new('wampcra', {'challenge' => challenge})
+      challenge_msg = WampClient::Message::Challenge.new('wampcra', {challenge: challenge})
       transport.receive_message(challenge_msg.payload)
 
       # Send abort message
