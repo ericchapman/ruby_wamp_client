@@ -1,3 +1,8 @@
+require 'simplecov'
+SimpleCov.start
+
+require_relative '../lib/wamp_client'
+
 require 'wamp_client'
 
 module SpecHelper
