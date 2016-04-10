@@ -10,6 +10,9 @@ Client for talking to a WAMP Router.  This is defined at
 
 ## Revision History
 
+ - v0.0.2:
+   - Added defer call result support
+   - Added progressive callee support
  - v0.0.1:
    - Initial Release
 
@@ -428,6 +431,84 @@ Options are
 
  - receive_progress [Boolean] - "true" if you support results being able to be sent progressively
  - disclose_me [Boolean] - "true" if the caller would like the callee to know the identity
+
+#### Errors
+Errors can either be raised OR returned as shown below
+
+```ruby
+handler = lambda do |args, kwargs, details|
+  raise 'error'
+  # OR
+  raise WampClient::CallError.new('wamp.error', ['some error'], {details: true})
+  # OR
+  WampClient::CallError.new('wamp.error', ['some error'], {details: true})
+end
+session.register('com.example.procedure', handler)
+```
+
+All 3 of the above examples will return a WAMP Error
+
+#### Deferred Call
+A deferred call refers to a call where the response needs to be asynchronously fetched before it can be returned to the
+caller.  This is shown below
+
+```ruby
+def add(args, kwargs, details)
+  defer = WampClient::Defer::CallDefer.new
+  EM.add_timer(2) {  # Something Async
+    defer.succeed(args[0]+args[1])
+  }
+  defer
+end
+session.register('com.example.procedure', method(:add))
+```
+
+Errors are returned as follows
+
+```ruby
+def add(args, kwargs, details)
+  defer = WampClient::Defer::CallDefer.new
+  EM.add_timer(2) {  # Something Async
+    defer.fail(WampClient::CallError.new('test.error'))
+  }
+  defer
+end
+session.register('com.example.procedure', method(:add))
+```
+
+#### Progressive Calls
+Progressive calls are ones that return the result in pieces rather than all at once.  They are invoked as follows
+
+**Caller**
+
+```ruby
+results = []
+session.call('com.example.procedure', [], {}, {receive_progress: true}) do |result, error, details|
+  results = results + result.args
+  unless details[:progress]
+    puts results # => [1,2,3,4,5,6]
+  end
+end
+```
+
+**Callee**
+
+```ruby
+def add(args, kwargs, details)
+  defer = WampClient::Defer::ProgressiveCallDefer.new
+  EM.add_timer(2) {  # Something Async
+    defer.progress(WampClient::CallResult.new([1,2,3]))
+  }
+  EM.add_timer(4) {  # Something Async
+    defer.progress(WampClient::CallResult.new([4,5,6]))
+  }
+  EM.add_timer(6) {  # Something Async
+    defer.succeed(WampClient::CallResult.new)
+  }
+  defer
+end
+session.register('com.example.procedure', method(:add))
+```
 
 ## Contributing
 

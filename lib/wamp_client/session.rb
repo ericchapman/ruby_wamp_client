@@ -49,7 +49,7 @@ module WampClient
               shared_registration: true,
               ##call_timeout: true,
               ##call_canceling: true,
-              # progressive_call_results: true,
+              progressive_call_results: true,
               registration_revocation: true
           }
       },
@@ -75,8 +75,18 @@ module WampClient
     attr_accessor :args, :kwargs
 
     def initialize(args=nil, kwargs=nil)
-      self.args = args
-      self.kwargs = kwargs
+      self.args = args || []
+      self.kwargs = kwargs || {}
+    end
+  end
+
+  class CallError < Exception
+    attr_accessor :error, :args, :kwargs
+
+    def initialize(error, args=nil, kwargs=nil)
+      self.error = error
+      self.args = args || []
+      self.kwargs = kwargs || {}
     end
   end
 
@@ -146,7 +156,7 @@ module WampClient
     attr_accessor :id, :realm, :transport, :verbose, :options
 
     # Private attributes
-    attr_accessor :_goodbye_sent, :_requests, :_subscriptions, :_registrations
+    attr_accessor :_goodbye_sent, :_requests, :_subscriptions, :_registrations, :_defers
 
     # Constructor
     # @param transport [WampClient::Transport::Base] The transport that the session will use
@@ -174,6 +184,7 @@ module WampClient
       # Init Subs and Regs in place
       self._subscriptions = {}
       self._registrations = {}
+      self._defers = {}
 
       # Setup Transport
       self.transport = transport
@@ -650,20 +661,69 @@ module WampClient
           begin
             value = h.call(args, kwargs, details)
 
-            if value.nil?
-              value = CallResult.new
-            elsif not value.is_a?(CallResult)
-              value = CallResult.new([value])
+            def send_error(request, error)
+              if error.nil?
+                error = CallError.new('wamp.error.runtime')
+              elsif not error.is_a?(CallError)
+                error = CallError.new('wamp.error.runtime', [error.to_s])
+              end
+
+              error_msg = WampClient::Message::Error.new(WampClient::Message::Types::INVOCATION, request, {}, error.error, error.args, error.kwargs)
+              self._send_message(error_msg)
             end
 
-            # TODO: Handle promise or future
+            def send_result(request, result, options={})
+              if result.nil?
+                result = CallResult.new
+              elsif result.is_a?(CallError)
+                # Do nothing
+              elsif not result.is_a?(CallResult)
+                result = CallResult.new([result])
+              end
 
-            yield_msg = WampClient::Message::Yield.new(request, {}, value.args, value.kwargs)
-            self._send_message(yield_msg)
-          rescue Exception => e
-            error = WampClient::Message::Error.new(WampClient::Message::Types::INVOCATION, request, {}, 'wamp.error.runtime', [e.to_s])
-            self._send_message(error)
+              if result.is_a?(CallError)
+                send_error(request, result)
+              else
+                yield_msg = WampClient::Message::Yield.new(request, options, result.args, result.kwargs)
+                self._send_message(yield_msg)
+              end
+            end
+
+            # If a defer was returned, handle accordingly
+            if value.is_a? WampClient::Defer::CallDefer
+              value.request = request
+
+              # Store the defer
+              self._defers[request] = value
+
+              # On complete, send the result
+              value.on_complete do |defer, result|
+                send_result(defer.request, result)
+                self._defers.delete(defer.request)
+              end
+
+              # On error, send the error
+              value.on_error do |defer, error|
+                send_error(defer.request, error)
+                self._defers.delete(defer.request)
+              end
+
+              # For progressive, return the progress
+              if value.is_a? WampClient::Defer::ProgressiveCallDefer
+                value.on_progress do |defer, result|
+                  send_result(defer.request, result, {progress: true})
+                end
+              end
+
+            # Else it was a normal response
+            else
+              send_result(request, value)
+            end
+
+          rescue Exception => error
+            send_error(request, error)
           end
+
         end
       end
     end
