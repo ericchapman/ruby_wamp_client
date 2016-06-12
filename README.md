@@ -88,7 +88,7 @@ connection.close
 Note that the connection will still call "on_leave" and "on_disconnect" as it closes the session and the transport
 
 #### Callbacks
-A session has the following callbacks
+A connection has the following callbacks
 
 **on_connect** - Called when the transport is opened
 ```ruby
@@ -118,7 +118,7 @@ connection.on_disconnect do |reason|
 end
 ```
 
-**oon_challenge** - Called when an authentication challenge is created
+**on_challenge** - Called when an authentication challenge is created
 ```ruby
 connection.on_challenge do |authmethod, extra|
 
@@ -215,7 +215,7 @@ end
 This method subscribes to a topic.  The prototype for the method is
 
 ```ruby
-subscribe(topic, handler, options={}, &callback)
+def subscribe(topic, handler, options={}, &callback)
 ```
 
 where the parameters are defined as
@@ -288,7 +288,7 @@ session.unsubscribe(@subscription)
 This method publishes an event to all of the subscribers.  The prototype for the method is
 
 ```ruby
-publish(topic, args=nil, kwargs=nil, options={}, &callback)
+def publish(topic, args=nil, kwargs=nil, options={}, &callback)
 ```
 
 where the parameters are defined as
@@ -331,7 +331,7 @@ Options are
 This method registers to a procedure.  The prototype for the method is
 
 ```ruby
-register(procedure, handler, options={}, &callback)
+def register(procedure, handler, options={}, &callback)
 ```
 
 where the parameters are defined as
@@ -406,7 +406,7 @@ session.unregister(@registration)
 This method calls a procedure.  The prototype for the method is
 
 ```ruby
-call(procedure, args=nil, kwargs=nil, options={}, &callback)
+def call(procedure, args=nil, kwargs=nil, options={}, &callback)
 ```
 
 where the parameters are defined as
@@ -520,7 +520,6 @@ session.register('com.example.procedure', method(:add))
 
 ### TODOs
 
- - progressive_call_results (callee)
  - call_timeout
  - call_canceling
 
