@@ -10,6 +10,8 @@ Client for talking to a WAMP Router.  This is defined at
 
 ## Revision History
 
+ - v0.0.3:
+   - Fixed issue 1: Empty args will omit kwargs on some message types
  - v0.0.2:
    - Added defer call result support
    - Added progressive callee support
