@@ -156,6 +156,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.realm)
         payload.push(self.details)
@@ -201,6 +202,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.session)
         payload.push(self.details)
@@ -246,6 +248,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.details)
         payload.push(self.reason)
@@ -291,6 +294,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.details)
         payload.push(self.reason)
@@ -346,16 +350,19 @@ module WampClient
       end
 
       def payload
+        self.arguments ||= []
+        self.argumentskw ||= {}
+
         payload = [self.class.type]
         payload.push(self.request_type)
         payload.push(self.request_request)
         payload.push(self.details)
         payload.push(self.error)
 
-        return payload if (self.arguments.nil? or self.arguments.empty?)
+        return payload if (self.arguments.empty? and self.argumentskw.empty?)
         payload.push(self.arguments)
 
-        return payload if (self.argumentskw.nil? or self.argumentskw.empty?)
+        return payload if (self.argumentskw.empty?)
         payload.push(self.argumentskw)
 
         payload
@@ -407,15 +414,18 @@ module WampClient
       end
 
       def payload
+        self.arguments ||= []
+        self.argumentskw ||= {}
+
         payload = [self.class.type]
         payload.push(self.request)
         payload.push(self.options)
         payload.push(self.topic)
 
-        return payload if (self.arguments.nil? or self.arguments.empty?)
+        return payload if (self.arguments.empty? and self.argumentskw.empty?)
         payload.push(self.arguments)
 
-        return payload if (self.argumentskw.nil? or self.argumentskw.empty?)
+        return payload if (self.argumentskw.empty?)
         payload.push(self.argumentskw)
 
         payload
@@ -459,6 +469,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.publish_request)
         payload.push(self.publication)
@@ -506,6 +517,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.request)
         payload.push(self.options)
@@ -552,6 +564,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.subscribe_request)
         payload.push(self.subscription)
@@ -597,6 +610,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.request)
         payload.push(self.subscribed_subscription)
@@ -640,6 +654,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.unsubscribe_request)
 
@@ -692,15 +707,18 @@ module WampClient
       end
 
       def payload
+        self.publish_arguments ||= []
+        self.publish_argumentskw ||= {}
+
         payload = [self.class.type]
         payload.push(self.subscribed_subscription)
         payload.push(self.published_publication)
         payload.push(self.details)
 
-        return payload if (self.publish_arguments.nil? or self.publish_arguments.empty?)
+        return payload if (self.publish_arguments.empty? and self.publish_argumentskw.empty?)
         payload.push(self.publish_arguments)
 
-        return payload if (self.publish_argumentskw.nil? or self.publish_argumentskw.empty?)
+        return payload if (self.publish_argumentskw.empty?)
         payload.push(self.publish_argumentskw)
 
         payload
@@ -752,15 +770,18 @@ module WampClient
       end
 
       def payload
+        self.arguments ||= []
+        self.argumentskw ||= {}
+
         payload = [self.class.type]
         payload.push(self.request)
         payload.push(self.options)
         payload.push(self.procedure)
 
-        return payload if (self.arguments.nil? or self.arguments.empty?)
+        return payload if (self.arguments.empty? and self.argumentskw.empty?)
         payload.push(self.arguments)
 
-        return payload if (self.argumentskw.nil? or self.argumentskw.empty?)
+        return payload if (self.argumentskw.empty?)
         payload.push(self.argumentskw)
 
         payload
@@ -810,14 +831,17 @@ module WampClient
       end
 
       def payload
+        self.yield_arguments ||= []
+        self.yield_argumentskw ||= {}
+
         payload = [self.class.type]
         payload.push(self.call_request)
         payload.push(self.details)
 
-        return payload if (self.yield_arguments.nil? or self.yield_arguments.empty?)
+        return payload if (self.yield_arguments.empty? and self.yield_argumentskw.empty?)
         payload.push(self.yield_arguments)
 
-        return payload if (self.yield_argumentskw.nil? or self.yield_argumentskw.empty?)
+        return payload if (self.yield_argumentskw.empty?)
         payload.push(self.yield_argumentskw)
 
         payload
@@ -863,6 +887,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.request)
         payload.push(self.options)
@@ -909,6 +934,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.register_request)
         payload.push(self.registration)
@@ -954,6 +980,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.request)
         payload.push(self.registered_registration)
@@ -997,6 +1024,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.unregister_request)
 
@@ -1049,15 +1077,18 @@ module WampClient
       end
 
       def payload
+        self.call_arguments ||= []
+        self.call_argumentskw ||= {}
+
         payload = [self.class.type]
         payload.push(self.request)
         payload.push(self.registered_registration)
         payload.push(self.details)
 
-        return payload if (self.call_arguments.nil? or self.call_arguments.empty?)
+        return payload if (self.call_arguments.empty? and self.call_argumentskw.empty?)
         payload.push(self.call_arguments)
 
-        return payload if (self.call_argumentskw.nil? or self.call_argumentskw.empty?)
+        return payload if (self.call_argumentskw.empty?)
         payload.push(self.call_argumentskw)
 
         payload
@@ -1107,14 +1138,17 @@ module WampClient
       end
 
       def payload
+        self.arguments ||= []
+        self.argumentskw ||= {}
+
         payload = [self.class.type]
         payload.push(self.invocation_request)
         payload.push(self.options)
 
-        return payload if (self.arguments.nil? or self.arguments.empty?)
+        return payload if (self.arguments.empty? and self.argumentskw.empty?)
         payload.push(self.arguments)
 
-        return payload if (self.argumentskw.nil? or self.argumentskw.empty?)
+        return payload if (self.argumentskw.empty?)
         payload.push(self.argumentskw)
 
         payload
@@ -1158,6 +1192,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.authmethod)
         payload.push(self.extra)
@@ -1203,6 +1238,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.signature)
         payload.push(self.extra)
@@ -1248,6 +1284,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.call_request)
         payload.push(self.options)
@@ -1293,6 +1330,7 @@ module WampClient
       end
 
       def payload
+
         payload = [self.class.type]
         payload.push(self.invocation_request)
         payload.push(self.options)

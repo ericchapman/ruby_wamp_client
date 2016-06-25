@@ -18,6 +18,24 @@ def value_from_type(type)
 
 end
 
+def empty_value_from_type(type)
+
+  value = nil
+
+  if type == 'int' or type == 'id'
+    value = '0'
+  elsif type == 'uri' or type == 'string'
+    value = "''"
+  elsif type == 'list'
+    value = "[]"
+  elsif type == 'dict'
+    value = '{}'
+  end
+
+  value
+
+end
+
 message_type_lookup = {
     'HELLO' => 1,
     'WELCOME' => 2,
@@ -401,12 +419,31 @@ messages.each do |message|
 
   # Generate the payload
   source_file += "\n      def payload\n"
+
+  optional_params = []
+  params.each do |param|
+    unless param[:required]
+      optional_params.push(param)
+      source_file += "        self.#{param[:name]} ||= #{empty_value_from_type(param[:type])}\n"
+    end
+  end
+  source_file += "\n"
+
   source_file += "        payload = [self.class.type]\n"
+  optional_count = 0
   params.each do |param|
     if param[:required]
       source_file += "        payload.push(self.#{param[:name]})\n"
     else
-      source_file += "\n        return payload if (self.#{param[:name]}.nil? or self.#{param[:name]}.empty?)\n"
+      optional_count += 1
+      source_file += "\n        return payload if (self.#{param[:name]}.empty?"
+
+      # Insert remaining parameters
+      for i in optional_count..(optional_params.size-1) do
+        source_file += " and self.#{optional_params[i][:name]}.empty?"
+      end
+
+      source_file += ")\n"
       source_file += "        payload.push(self.#{param[:name]})\n"
     end
   end
@@ -486,43 +523,93 @@ messages.each do |message|
   end
   test_file += "    end\n"
 
+  number_of_optional_params = 0
+
   # Generate non-required parameter tests
   params.each do |param|
     unless param[:required]
-      value_array.push(value_from_type(param[:type]))
+      number_of_optional_params += 1
+
+      temp_value_array = Array.new(value_array)
+      temp_value_array.push(value_from_type(param[:type]))
 
       test_file += "\n    describe 'checks optional parameter #{param[:name]}' do\n"
 
       # Generate Constructor Test
       test_file += "\n      it 'creates the message object' do\n"
-      test_file += "        params = [#{value_array.join(',')}]\n"
+      test_file += "        params = [#{temp_value_array.join(',')}]\n"
       test_file += "        object = #{class_name}.new(*params)\n\n"
       test_file += "        expect(object.is_a?(#{class_name})).to eq(true)\n"
       test_file += "      end\n"
 
       # Generate Parser Test
       test_file += "\n      it 'parses the message and creates an object' do\n"
-      test_file += "        params = [#{message_type_lookup[message[:name].upcase]},#{value_array.join(',')}]\n"
+      test_file += "        params = [#{message_type_lookup[message[:name].upcase]},#{temp_value_array.join(',')}]\n"
       test_file += "        object = #{class_name}.parse(params)\n\n"
       test_file += "        expect(object.is_a?(#{class_name})).to eq(true)\n"
       test_file += "      end\n"
 
       # Generate Payload Test
       test_file += "\n      it 'generates the payload' do\n"
-      test_file += "        params = [#{value_array.join(',')}]\n"
+      test_file += "        params = [#{temp_value_array.join(',')}]\n"
       test_file += "        object = #{class_name}.new(*params)\n"
       test_file += "        payload = object.payload\n\n"
       count = 0
-      test_file += "        expect(payload.count).to eq(#{value_array.count+1})\n"
+      test_file += "        expect(payload.count).to eq(#{temp_value_array.count+1})\n"
       test_file += "        expect(payload[0]).to eq(#{message_type_lookup[message[:name].upcase]})\n"
-      value_array.each do |value|
+      temp_value_array.each do |value|
         test_file += "        expect(payload[#{count+1}]).to eq(#{value})\n"
         count += 1
       end
       test_file += "      end\n"
 
       test_file += "\n    end\n"
+
+      value_array.push(empty_value_from_type(param[:type]))
     end
+  end
+
+  ## Test the final one and make sure they omit
+  if number_of_optional_params > 0
+
+    # Generate check params
+    check_params = []
+    for i in 0..(value_array.size-number_of_optional_params-1) do
+      check_params.push(value_array[i])
+    end
+
+    test_file += "\n    describe 'checks optional parameters' do\n"
+
+    # Generate Constructor Test
+    test_file += "\n      it 'creates the message object' do\n"
+    test_file += "        params = [#{value_array.join(',')}]\n"
+    test_file += "        object = #{class_name}.new(*params)\n\n"
+    test_file += "        expect(object.is_a?(#{class_name})).to eq(true)\n"
+    test_file += "      end\n"
+
+    # Generate Parser Test
+    test_file += "\n      it 'parses the message and creates an object' do\n"
+    test_file += "        params = [#{message_type_lookup[message[:name].upcase]},#{value_array.join(',')}]\n"
+    test_file += "        object = #{class_name}.parse(params)\n\n"
+    test_file += "        expect(object.is_a?(#{class_name})).to eq(true)\n"
+    test_file += "      end\n"
+
+    # Generate Payload Test
+    test_file += "\n      it 'generates the payload' do\n"
+    test_file += "        params = [#{value_array.join(',')}]\n"
+    test_file += "        object = #{class_name}.new(*params)\n"
+    test_file += "        payload = object.payload\n\n"
+    count = 0
+    test_file += "        expect(payload.count).to eq(#{check_params.count+1})\n"
+    test_file += "        expect(payload[0]).to eq(#{message_type_lookup[message[:name].upcase]})\n"
+    check_params.each do |value|
+      test_file += "        expect(payload[#{count+1}]).to eq(#{value})\n"
+      count += 1
+    end
+    test_file += "      end\n"
+
+    test_file += "\n    end\n"
+
   end
 
   test_file += "\n  end\n"
