@@ -168,8 +168,8 @@ module WampClient
       # Parameters
       self.id = nil
       self.realm = nil
-      self.verbose = false
       self.options = options || {}
+      self.verbose = self.options[:verbose]
 
       # Outstanding Requests
       self._requests = {
@@ -275,7 +275,10 @@ module WampClient
 
       message = WampClient::Message::Base.parse(msg)
 
-      puts 'RX: ' + message.to_s if self.verbose
+      if self.verbose
+        puts 'RX: ' + message.to_s if message
+        puts 'RX(non-wamp): ' + msg.to_s unless message
+      end
 
       # WAMP Session is not open
       if self.id.nil?

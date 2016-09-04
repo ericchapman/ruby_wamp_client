@@ -10,6 +10,8 @@ Client for talking to a WAMP Router.  This is defined at
 
 ## Revision History
 
+ - v0.0.4:
+   - Added the ability to turn on logging by adding 'verbose' to the options
  - v0.0.3:
    - Fixed issue 1: Empty args will omit kwargs on some message types
  - v0.0.2:
@@ -52,7 +54,8 @@ require 'wamp_client'
 
 options = {
     uri: 'ws://127.0.0.1:8080/ws',
-    realm: 'realm1'
+    realm: 'realm1',
+    verbose: true
 }
 connection = WampClient::Connection.new(options)
 
