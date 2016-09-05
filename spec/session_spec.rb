@@ -26,6 +26,8 @@ describe WampClient::Session do
       expect(transport.messages[0][0]).to eq(WampClient::Message::Types::HELLO)
       expect(transport.messages[0][1]).to eq('test')  # Realm Test
       expect(transport.messages[0][2][:roles]).not_to be_nil  # Roles exists
+      expect(transport.messages[0][2].key?(:authid)).to eq(false)  # Ensure authid is omitted
+      expect(transport.messages[0][2].key?(:authmethods)).to eq(false)  # Ensure authmethods is ommitted
 
       # Check State
       expect(session.id).to be_nil
