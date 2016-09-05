@@ -220,8 +220,8 @@ module WampClient
       details = {}
       details[:roles] = WAMP_FEATURES
       details[:agent] = "Ruby-WampClient-#{WampClient::VERSION}"
-      details[:authid] = self.options[:authid]
-      details[:authmethods] = self.options[:authmethods]
+      details[:authid] = self.options[:authid] if self.options[:authid]
+      details[:authmethods] = self.options[:authmethods] if self.options[:authmethods]
 
       # Send Hello message
       hello = WampClient::Message::Hello.new(realm, details)

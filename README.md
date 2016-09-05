@@ -10,6 +10,9 @@ Client for talking to a WAMP Router.  This is defined at
 
 ## Revision History
 
+ - v0.0.5:
+   - Fixed issue where excluding the 'authmethods' and 'authid' was setting their values to none rather
+     than excluding them.  This was being rejected by some routers
  - v0.0.4:
    - Added the ability to turn on logging by adding 'verbose' to the options
  - v0.0.3:
