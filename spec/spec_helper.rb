@@ -14,7 +14,7 @@ module SpecHelper
 
   class TestTransport < WampClient::Transport::Base
 
-    attr_accessor :messages
+    attr_accessor :messages, :timer_callback
 
     def initialize(options)
       super(options)
@@ -38,6 +38,10 @@ module SpecHelper
 
       # Call the received message
       @on_message.call(deserialize) unless @on_message.nil?
+    end
+
+    def timer(milliseconds, &callback)
+      self.timer_callback = callback
     end
 
   end

@@ -29,7 +29,7 @@ module WampClient
   module Defer
 
     class CallDefer
-      attr_accessor :request
+      attr_accessor :request, :registration
 
       @on_complete
       def on_complete(&on_complete)

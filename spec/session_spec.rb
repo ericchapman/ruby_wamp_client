@@ -561,6 +561,9 @@ describe WampClient::Session do
 
   describe 'invocation' do
     before(:each) do
+      @mode = nil
+      @request = nil
+
       # Check Exception
       expect { session.register('test.procedure', nil, {test: 1}) }.to raise_exception("Session must be open to call 'register'")
 
@@ -603,6 +606,18 @@ describe WampClient::Session do
       session.register('test.procedure.call.error', handler, {test: 1})
       request_id = session._requests[:register].keys.first
       registered = WampClient::Message::Registered.new(request_id, 6789)
+      transport.receive_message(registered.payload)
+
+      # Defer Interrupt Register
+      defer_interrupt_handler = lambda do |request, mode|
+        @request = request
+        @mode = mode
+        @response
+      end
+      session.register('test.defer.interrupt.procedure', defer_handler, nil, defer_interrupt_handler)
+
+      request_id = session._requests[:register].keys.first
+      registered = WampClient::Message::Registered.new(request_id, 7896)
       transport.receive_message(registered.payload)
 
       transport.messages = []
@@ -784,6 +799,75 @@ describe WampClient::Session do
       expect(transport.messages[0][4]).to eq('wamp.error.runtime')
       expect(transport.messages[0][5]).to eq(['error'])
       expect(transport.messages[0][6]).to eq({error: true})
+
+    end
+
+    context 'cancels' do
+      it 'default response' do
+
+        @response = nil
+
+        @defer = WampClient::Defer::CallDefer.new
+
+        # Generate server event
+        invocation = WampClient::Message::Invocation.new(7890, 7896, {test:1}, [2], {param: 'value'})
+        transport.receive_message(invocation.payload)
+
+        expect(transport.messages.count).to eq(0)
+
+        # Generate the interrupt from the broker/dealer
+        interrupt = WampClient::Message::Interrupt.new(7890, { mode: 'killnowait'})
+        transport.receive_message(interrupt.payload)
+
+        # Check and make sure request and mode were sent
+        expect(@request).to eq(7890)
+        expect(@mode).to eq('killnowait')
+
+        # Check and make sure error message was sent
+        expect(transport.messages.count).to eq(1)
+        expect(transport.messages[0][0]).to eq(WampClient::Message::Types::ERROR)
+        expect(transport.messages[0][1]).to eq(WampClient::Message::Types::INVOCATION)
+        expect(transport.messages[0][2]).to eq(7890)
+        expect(transport.messages[0][3]).to eq({})
+        expect(transport.messages[0][4]).to eq('wamp.error.runtime')
+        expect(transport.messages[0][5]).to eq(['interrupt'])
+
+        # Check and make sure the additional response is ignored
+        @defer.succeed('test')
+        expect(transport.messages.count).to eq(1)
+
+      end
+
+      it 'custom response' do
+
+        @response = 'custom'
+
+        @defer = WampClient::Defer::CallDefer.new
+
+        # Generate server event
+        invocation = WampClient::Message::Invocation.new(7890, 7896, {test:1}, [2], {param: 'value'})
+        transport.receive_message(invocation.payload)
+
+        expect(transport.messages.count).to eq(0)
+
+        # Generate the interrupt from the broker/dealer
+        interrupt = WampClient::Message::Interrupt.new(7890, { mode: 'kill'})
+        transport.receive_message(interrupt.payload)
+
+        # Check and make sure request and mode were sent
+        expect(@request).to eq(7890)
+        expect(@mode).to eq('kill')
+
+        # Check and make sure error message was sent
+        expect(transport.messages.count).to eq(1)
+        expect(transport.messages[0][0]).to eq(WampClient::Message::Types::ERROR)
+        expect(transport.messages[0][1]).to eq(WampClient::Message::Types::INVOCATION)
+        expect(transport.messages[0][2]).to eq(7890)
+        expect(transport.messages[0][3]).to eq({})
+        expect(transport.messages[0][4]).to eq('wamp.error.runtime')
+        expect(transport.messages[0][5]).to eq(['custom'])
+
+      end
 
     end
   end
@@ -994,6 +1078,73 @@ describe WampClient::Session do
 
     end
 
+    it 'cancels calling a procedure' do
+
+      count = 0
+      call = session.call('test.procedure', nil, nil, {acknowledge: true}) do |result, error, details|
+        count += 1
+
+        expect(result).to be_nil
+        expect(error[:error]).to eq('this.cancelled')
+        expect(details).to eq({fail: true, procedure: 'test.procedure', type: 'call'})
+      end
+
+      @request_id = session._requests[:call].keys.first
+
+      expect(count).to eq(0)
+
+      # Call Cancel
+      call.cancel('kill')
+
+      # Check transport
+      expect(transport.messages.count).to eq(2)
+      expect(transport.messages[1][0]).to eq(WampClient::Message::Types::CANCEL)
+      expect(transport.messages[1][1]).to eq(call.id)
+      expect(transport.messages[1][2]).to eq({mode: 'kill'})
+
+      # Generate Server Response
+      error = WampClient::Message::Error.new(WampClient::Message::Types::CALL,
+                                             @request_id, {fail: true}, 'this.cancelled')
+      transport.receive_message(error.payload)
+
+      expect(count).to eq(1)
+
+      # Check the request dictionary
+      expect(session._requests[:call].count).to eq(0)
+
+    end
+
+    context 'timeout' do
+      it 'does not cancel a call if no timeout specified' do
+        @defer = WampClient::Defer::ProgressiveCallDefer.new
+
+        count = 0
+        session.call('test.procedure', nil, nil) do |result, error, details|
+          count += 1
+        end
+
+        expect(transport.timer_callback).to be_nil
+        expect(transport.messages.count).to eq(1)
+      end
+
+      it 'does cancel a call if a timeout is specified' do
+        @defer = WampClient::Defer::ProgressiveCallDefer.new
+
+        count = 0
+        call = session.call('test.procedure', nil, nil, {timeout: 1000}) do |result, error, details|
+          count += 1
+        end
+
+        expect(transport.timer_callback).not_to be_nil
+        transport.timer_callback.call
+
+        expect(transport.messages.count).to eq(2)
+
+        expect(transport.messages[1][0]).to eq(WampClient::Message::Types::CANCEL)
+        expect(transport.messages[1][1]).to eq(call.id)
+        expect(transport.messages[1][2]).to eq({mode: 'skip'})
+      end
+    end
   end
 
   describe 'progressive_call_results' do
@@ -1006,7 +1157,7 @@ describe WampClient::Session do
       transport.messages = []
     end
 
-    it 'caller ignores (should only get the first response' do
+    it 'caller ignores (should only get the first response because receive_progress is false)' do
 
       results = []
       session.call('test.procedure', [], {}, {}) do |result, error, details|
@@ -1111,6 +1262,56 @@ describe WampClient::Session do
       expect(transport.messages[2][1]).to eq(7890)
       expect(transport.messages[2][2]).to eq({})
       expect(transport.messages[2][3]).to eq(['test3'])
+
+    end
+
+    it 'callee error support' do
+
+      # Defer Register
+      @defer = WampClient::Defer::ProgressiveCallDefer.new
+      defer_handler = lambda do |args, kwargs, details|
+        @defer
+      end
+      session.register('test.defer.procedure', defer_handler)
+
+      request_id = session._requests[:register].keys.first
+      registered = WampClient::Message::Registered.new(request_id, 4567)
+      transport.receive_message(registered.payload)
+
+      transport.messages = []
+
+      # Generate server event
+      invocation = WampClient::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
+      transport.receive_message(invocation.payload)
+
+      expect(transport.messages.count).to eq(0)
+      expect(session._defers.count).to eq(1)
+
+      @defer.progress(WampClient::CallResult.new(['test1']))
+      expect(session._defers.count).to eq(1)
+      @defer.progress(WampClient::CallResult.new(['test2']))
+      expect(session._defers.count).to eq(1)
+      @defer.fail(WampClient::CallError.new('test.error'))
+      expect(session._defers.count).to eq(0)
+
+      expect(transport.messages.count).to eq(3)
+
+      # Check and make sure yield message was sent
+      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[0][1]).to eq(7890)
+      expect(transport.messages[0][2]).to eq({progress: true})
+      expect(transport.messages[0][3]).to eq(['test1'])
+
+      expect(transport.messages[1][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[1][1]).to eq(7890)
+      expect(transport.messages[1][2]).to eq({progress: true})
+      expect(transport.messages[1][3]).to eq(['test2'])
+
+      expect(transport.messages[2][0]).to eq(WampClient::Message::Types::ERROR)
+      expect(transport.messages[2][1]).to eq(WampClient::Message::Types::INVOCATION)
+      expect(transport.messages[2][2]).to eq(7890)
+      expect(transport.messages[2][3]).to eq({})
+      expect(transport.messages[2][4]).to eq('test.error')
 
     end
 

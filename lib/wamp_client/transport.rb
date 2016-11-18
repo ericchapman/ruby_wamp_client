@@ -106,6 +106,13 @@ module WampClient
         # Implement in subclass
       end
 
+      # Process the callback when the timer expires
+      # @param [Integer] milliseconds - The number
+      # @param [block] callback - The callback that is fired when the timer expires
+      def timer(milliseconds, &callback)
+        # Implement in subclass
+      end
+
     end
 
     # This implementation uses the 'websocket-eventmachine-client' Gem.  This is the default if no transport is included
@@ -149,6 +156,13 @@ module WampClient
         else
           raise RuntimeError, "Socket must be open to call 'send_message'"
         end
+      end
+
+      def timer(milliseconds, &callback)
+        delay = (milliseconds.to_f/1000.0).ceil
+        EM.add_timer(delay) {
+          callback.call
+        }
       end
 
     end

@@ -36,8 +36,8 @@ module WampClient
       caller: {
           features: {
               caller_identification: true,
-              ##call_timeout: true,
-              ##call_canceling: true,
+              call_timeout: true,
+              call_canceling: true,
               progressive_call_results: true
           }
       },
@@ -48,7 +48,7 @@ module WampClient
               pattern_based_registration: true,
               shared_registration: true,
               ##call_timeout: true,
-              ##call_canceling: true,
+              call_canceling: true,
               progressive_call_results: true,
               registration_revocation: true
           }
@@ -108,12 +108,13 @@ module WampClient
   end
 
   class Registration
-    attr_accessor :procedure, :handler, :options, :session, :id
+    attr_accessor :procedure, :handler, :i_handler, :options, :session, :id
 
-    def initialize(procedure, handler, options, session, id)
+    def initialize(procedure, handler, options, i_handler, session, id)
       self.procedure = procedure
       self.handler = handler
       self.options = options
+      self.i_handler = i_handler
       self.session = session
       self.id = id
     end
@@ -124,6 +125,19 @@ module WampClient
 
   end
 
+  class Call
+    attr_accessor :session, :id
+
+    def initialize(session, id)
+      self.session = session
+      self.id = id
+    end
+
+    def cancel(mode='skip')
+      self.session.cancel(self, mode)
+    end
+
+  end
 
   class Session
     include WampClient::Check
@@ -360,6 +374,8 @@ module WampClient
               self._process_UNREGISTERED(message)
             elsif message.is_a? WampClient::Message::Invocation
               self._process_INVOCATION(message)
+            elsif message.is_a? WampClient::Message::Interrupt
+              self._process_INTERRUPT(message)
             elsif message.is_a? WampClient::Message::Result
               self._process_RESULT(message)
             else
@@ -587,21 +603,23 @@ module WampClient
 
     # Register to a procedure
     # @param procedure [String] The procedure to register for
-    # @param handler [lambda] The handler(args, kwargs, details) when a invocation is received
-    # @param options [Hash] The options for the registration
+    # @param handler [lambda] The handler(args, kwargs, details) when an invocation is received
+    # @param options [Hash, nil] The options for the registration
+    # @param interrupt [lambda] The handler(request, mode) when an interrupt is received
     # @param callback [block] The callback(registration, error, details) called to signal if the registration was a success or not
-    def register(procedure, handler, options={}, &callback)
+    def register(procedure, handler, options=nil, interrupt=nil, &callback)
       unless is_open?
         raise RuntimeError, "Session must be open to call 'register'"
       end
 
+      options ||= {}
+
       self.class.check_uri('procedure', procedure)
-      self.class.check_dict('options', options)
       self.class.check_nil('handler', handler, false)
 
       # Create a new registration request
       request = self._generate_id
-      self._requests[:register][request] = {p: procedure, h: handler, o: options, c: callback}
+      self._requests[:register][request] = {p: procedure, h: handler, i: interrupt, o: options, c: callback}
 
       # Send the message
       register = WampClient::Message::Register.new(request, options, procedure)
@@ -615,7 +633,7 @@ module WampClient
       # Remove the pending subscription, add it to the registered ones, and inform the caller
       r = self._requests[:register].delete(msg.register_request)
       if r
-        n_r = Registration.new(r[:p], r[:h], r[:o], self, msg.registration)
+        n_r = Registration.new(r[:p], r[:h], r[:o], r[:i], self, msg.registration)
         self._registrations[msg.registration] = n_r
 
         details = {}
@@ -646,6 +664,49 @@ module WampClient
 
     end
 
+    # Sends an error back to the caller
+    # @param request[Integer] - The request ID
+    # @param error
+    def _send_INVOCATION_error(request, error, check_defer=false)
+      # Prevent responses for defers that have already completed or had an error
+      if check_defer and not self._defers[request]
+        return
+      end
+
+      if error.nil?
+        error = CallError.new('wamp.error.runtime')
+      elsif not error.is_a?(CallError)
+        error = CallError.new('wamp.error.runtime', [error.to_s])
+      end
+
+      error_msg = WampClient::Message::Error.new(WampClient::Message::Types::INVOCATION, request, {}, error.error, error.args, error.kwargs)
+      self._send_message(error_msg)
+    end
+
+    # Sends a result for the invocation
+    def _send_INVOCATION_result(request, result, options={}, check_defer=false)
+      # Prevent responses for defers that have already completed or had an error
+      if check_defer and not self._defers[request]
+        return
+      end
+
+      if result.nil?
+        result = CallResult.new
+      elsif result.is_a?(CallError)
+        # Do nothing
+      elsif not result.is_a?(CallResult)
+        result = CallResult.new([result])
+      end
+
+      if result.is_a?(CallError)
+        self._send_INVOCATION_error(request, result)
+      else
+        yield_msg = WampClient::Message::Yield.new(request, options, result.args, result.kwargs)
+        self._send_message(yield_msg)
+      end
+    end
+
+
     # Processes and event from the broker
     # @param msg [WampClient::Message::Invocation] An procedure that was called
     def _process_INVOCATION(msg)
@@ -664,71 +725,78 @@ module WampClient
           begin
             value = h.call(args, kwargs, details)
 
-            def send_error(request, error)
-              if error.nil?
-                error = CallError.new('wamp.error.runtime')
-              elsif not error.is_a?(CallError)
-                error = CallError.new('wamp.error.runtime', [error.to_s])
-              end
-
-              error_msg = WampClient::Message::Error.new(WampClient::Message::Types::INVOCATION, request, {}, error.error, error.args, error.kwargs)
-              self._send_message(error_msg)
-            end
-
-            def send_result(request, result, options={})
-              if result.nil?
-                result = CallResult.new
-              elsif result.is_a?(CallError)
-                # Do nothing
-              elsif not result.is_a?(CallResult)
-                result = CallResult.new([result])
-              end
-
-              if result.is_a?(CallError)
-                send_error(request, result)
-              else
-                yield_msg = WampClient::Message::Yield.new(request, options, result.args, result.kwargs)
-                self._send_message(yield_msg)
-              end
-            end
-
             # If a defer was returned, handle accordingly
             if value.is_a? WampClient::Defer::CallDefer
               value.request = request
+              value.registration = msg.registered_registration
 
               # Store the defer
               self._defers[request] = value
 
               # On complete, send the result
               value.on_complete do |defer, result|
-                send_result(defer.request, result)
+                self._send_INVOCATION_result(defer.request, result, {}, true)
                 self._defers.delete(defer.request)
               end
 
               # On error, send the error
               value.on_error do |defer, error|
-                send_error(defer.request, error)
+                self._send_INVOCATION_error(defer.request, error, true)
                 self._defers.delete(defer.request)
               end
 
               # For progressive, return the progress
               if value.is_a? WampClient::Defer::ProgressiveCallDefer
                 value.on_progress do |defer, result|
-                  send_result(defer.request, result, {progress: true})
+                  self._send_INVOCATION_result(defer.request, result, {progress: true}, true)
                 end
               end
 
             # Else it was a normal response
             else
-              send_result(request, value)
+              self._send_INVOCATION_result(request, value)
             end
 
           rescue Exception => error
-            send_error(request, error)
+            self._send_INVOCATION_error(request, error)
           end
 
         end
       end
+    end
+
+    # Processes the interrupt
+    # @param msg [WampClient::Message::Interrupt] An interrupt to a procedure
+    def _process_INTERRUPT(msg)
+
+      request = msg.invocation_request
+      mode = msg.options[:mode]
+
+      defer = self._defers[request]
+      if defer
+        r = self._registrations[defer.registration]
+        if r
+          # If it exists, call the interrupt handler to inform it of the interrupt
+          i = r.i_handler
+          error = nil
+          if i
+            begin
+              error = i.call(request, mode)
+            rescue Exception => e
+              error = e
+            end
+          end
+
+          error ||= 'interrupt'
+
+          # Send the error back to the client
+          self._send_INVOCATION_error(request, error, true)
+        end
+
+        # Delete the defer
+        self._defers.delete(request)
+      end
+
     end
 
     #endregion
@@ -802,6 +870,7 @@ module WampClient
     # @param kwargs [Hash] The keyword arguments
     # @param options [Hash] The options for the call
     # @param callback [block] The callback(result, error, details) called to signal if the call was a success or not
+    # @return [Call] An object representing the call
     def call(procedure, args=nil, kwargs=nil, options={}, &callback)
       unless is_open?
         raise RuntimeError, "Session must be open to call 'call'"
@@ -817,8 +886,22 @@ module WampClient
       self._requests[:call][request] = {p: procedure, a: args, k: kwargs, o: options, c: callback}
 
       # Send the message
-      call = WampClient::Message::Call.new(request, options, procedure, args, kwargs)
-      self._send_message(call)
+      msg = WampClient::Message::Call.new(request, options, procedure, args, kwargs)
+      self._send_message(msg)
+
+      call = Call.new(self, request)
+
+      # Timeout Logic
+      if options[:timeout] and options[:timeout] > 0
+        self.transport.timer(options[:timeout]) do
+          # Once the timer expires, if the call hasn't completed, cancel it
+          if self._requests[:call][call.id]
+            call.cancel
+          end
+        end
+      end
+
+      call
     end
 
     # Processes the response to a publish request
@@ -858,6 +941,25 @@ module WampClient
         c.call(nil, self._error_to_hash(msg), details) if c
       end
 
+    end
+
+    #endregion
+
+    #region Cancel Logic
+
+    # Cancels a call
+    # @param call [Call] - The call object
+    # @param mode [String] - The mode of the skip.  Options are 'skip', 'kill', 'killnowait'
+    def cancel(call, mode='skip')
+      unless is_open?
+        raise RuntimeError, "Session must be open to call 'cancel'"
+      end
+
+      self.class.check_nil('call', call, false)
+
+      # Send the message
+      cancel = WampClient::Message::Cancel.new(call.id, { mode: mode })
+      self._send_message(cancel)
     end
 
     #endregion

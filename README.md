@@ -4,12 +4,13 @@
 [![Circle CI](https://circleci.com/gh/ericchapman/ruby_wamp_client/tree/master.svg?&style=shield&circle-token=92813c17f9c9510c4c644e41683e7ba2572e0b2a)](https://circleci.com/gh/ericchapman/ruby_wamp_client/tree/master)
 [![Codecov](https://img.shields.io/codecov/c/github/ericchapman/ruby_wamp_client/master.svg)](https://codecov.io/github/ericchapman/ruby_wamp_client)
 
-Client for talking to a WAMP Router.  This is defined at
-
-    https://tools.ietf.org/html/draft-oberstet-hybi-tavendo-wamp-02
+Client for talking to a WAMP Router.  This is defined [here](https://tools.ietf.org/html/draft-oberstet-hybi-tavendo-wamp-02)
 
 ## Revision History
 
+ - v0.0.6:
+   - Added call cancelling
+   - Added call timeout
  - v0.0.5:
    - Fixed issue where excluding the 'authmethods' and 'authid' was setting their values to none rather
      than excluding them.  This was being rejected by some routers
@@ -439,6 +440,7 @@ Options are
 
  - receive_progress [Boolean] - "true" if you support results being able to be sent progressively
  - disclose_me [Boolean] - "true" if the caller would like the callee to know the identity
+ - timeout [Integer] - specifies the number of milliseconds the caller should wait before cancelling the call
 
 #### Errors
 Errors can either be raised OR returned as shown below
@@ -518,6 +520,72 @@ end
 session.register('com.example.procedure', method(:add))
 ```
 
+#### Cancelled Call
+A cancelled call will tell a callee who implements a progressive call to cancel it
+ 
+**Caller**
+
+```ruby
+call = session.call('com.example.procedure', [15], {param: value}, {}) do |result, error, details|
+  # TODO: Do something
+  args = result.args
+  kwargs = result.kwargs
+end
+
+# At some later time...
+
+session.cancel(call, 'skip')  # Options are 'skip', 'kill', or 'killnowait'
+
+# or ...
+
+call.cancel('skip')
+```
+
+**Callee**
+
+(There is probably a better way to do this.  This is a bad example)
+
+```ruby
+@interrupts = {}
+
+def interrupt_handler(request, mode)
+  @interrups[request] = mode
+  
+  # To trigger a custom error, either return something or raise a "CallError"
+  # else the library will raise a standard error for you
+end
+
+def add(args, kwargs, details)
+  defer = WampClient::Defer::ProgressiveCallDefer.new
+  EM.add_timer(2) {  # Something Async
+    if @interrupts[defer.request].nil?
+      defer.progress(WampClient::CallResult.new([1,2,3]))
+    end
+  }
+  EM.add_timer(4) {  # Something Async
+    if @interrupts[defer.request].nil?
+      defer.progress(WampClient::CallResult.new([4,5,6]))
+    end
+  }
+  EM.add_timer(6) {  # Something Async
+    if @interrupts[defer.request].nil?
+      defer.succeed(WampClient::CallResult.new)
+    end
+    @interrupts.delete(request)
+  }
+  defer
+end
+
+session.register('com.example.procedure', method(:add), nil, method(:interrupt_handler))
+```
+
+Notes:
+
+ - Once the response is cancelled, subsequent succeed, progress, or errors are ignored
+   and not sent to the caller
+ - Cancels are only processed by calls that had defers.  If the defer does not exist then
+   the cancel is ignored
+
 ## Contributing
 
 1. Fork it ( https://github.com/ericchapman/ruby_wamp_client )
@@ -525,11 +593,6 @@ session.register('com.example.procedure', method(:add))
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
-
-### TODOs
-
- - call_timeout
- - call_canceling
 
 ### Testing
 
