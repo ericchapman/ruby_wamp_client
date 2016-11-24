@@ -8,6 +8,8 @@ Client for talking to a WAMP Router.  This is defined [here](https://tools.ietf.
 
 ## Revision History
 
+ - v0.0.7:
+   - Added 'session' to the 'details' in the callbacks and handlers
  - v0.0.6:
    - Added call cancelling
    - Added call timeout
@@ -181,7 +183,9 @@ All handlers are called with the following parameters
 
  - args [Array] - Array of arguments
  - kwargs [Hash] - Hash of key/value arguments
- - details [Hash] - Hash containing some details about the call
+ - details [Hash] - Hash containing some details about the call.  Details include
+   - session [WampClient::Session] - The session
+   - etc.
 
 Some examples of this are shown below
 
@@ -208,7 +212,10 @@ All callbacks are called with the following parameters
 
  - result [Object] - Some object with the result information (depends on the call)
  - error [Hash] - Hash containing "error", "args", and "kwargs" if an error occurred
- - details [Hash] - Hash containing some details about the call
+ - details [Hash] - Hash containing some details about the call.  Details include
+   - type [String] - The type of message
+   - session [WampClient::Session] - The session
+   - etc.
 
 An example of this is shown below
 

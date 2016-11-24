@@ -424,6 +424,7 @@ module WampClient
         details = {}
         details[:topic] = s[:t] unless details[:topic]
         details[:type] = 'subscribe'
+        details[:session] = self
 
         n_s = Subscription.new(s[:t], s[:h], s[:o], self, msg.subscription)
         self._subscriptions[msg.subscription] = n_s
@@ -444,6 +445,7 @@ module WampClient
         details = msg.details || {}
         details[:topic] = s[:t] unless details[:topic]
         details[:type] = 'subscribe'
+        details[:session] = self
 
         c = s[:c]
         c.call(nil, self._error_to_hash(msg), details) if c
@@ -462,6 +464,7 @@ module WampClient
       if s
         details = msg.details || {}
         details[:publication] = msg.published_publication
+        details[:session] = self
 
         h = s.handler
         h.call(args, kwargs, details) if h
@@ -505,6 +508,7 @@ module WampClient
         details = {}
         details[:topic] = s[:s].topic
         details[:type] = 'unsubscribe'
+        details[:session] = self
 
         c = s[:c]
         c.call(n_s, nil, details) if c
@@ -524,6 +528,7 @@ module WampClient
         details = msg.details || {}
         details[:topic] = s[:s].topic unless details[:topic]
         details[:type] = 'unsubscribe'
+        details[:session] = self
 
         c = s[:c]
         c.call(nil, self._error_to_hash(msg), details) if c
@@ -572,6 +577,7 @@ module WampClient
         details[:topic] = p[:t]
         details[:type] = 'publish'
         details[:publication] = msg.publication
+        details[:session] = self
 
         c = p[:c]
         c.call(p, nil, details) if c
@@ -590,6 +596,7 @@ module WampClient
         details = msg.details || {}
         details[:topic] = s[:t] unless details[:topic]
         details[:type] = 'publish'
+        details[:session] = self
 
         c = s[:c]
         c.call(nil, self._error_to_hash(msg), details) if c
@@ -639,6 +646,7 @@ module WampClient
         details = {}
         details[:procedure] = r[:p]
         details[:type] = 'register'
+        details[:session] = self
 
         c = r[:c]
         c.call(n_r, nil, details) if c
@@ -657,6 +665,7 @@ module WampClient
         details = msg.details || {}
         details[:procedure] = r[:p] unless details[:procedure]
         details[:type] = 'register'
+        details[:session] = self
 
         c = r[:c]
         c.call(nil, self._error_to_hash(msg), details) if c
@@ -717,6 +726,7 @@ module WampClient
 
       details = msg.details || {}
       details[:request] = request
+      details[:session] = self
 
       r = self._registrations[msg.registered_registration]
       if r
@@ -835,6 +845,7 @@ module WampClient
         details = {}
         details[:procedure] = r_s.procedure
         details[:type] = 'unregister'
+        details[:session] = self
 
         c = r[:c]
         c.call(r_s, nil, details) if c
@@ -853,6 +864,7 @@ module WampClient
         details = msg.details || {}
         details[:procedure] = r[:r].procedure unless details[:procedure]
         details[:type] = 'unregister'
+        details[:session] = self
 
         c = r[:c]
         c.call(nil, self._error_to_hash(msg), details) if c
@@ -918,6 +930,7 @@ module WampClient
       if call
         details[:procedure] = call[:p] unless details[:procedure]
         details[:type] = 'call'
+        details[:session] = self
 
         c = call[:c]
         c.call(CallResult.new(msg.yield_arguments, msg.yield_argumentskw), nil, details) if c
@@ -936,6 +949,7 @@ module WampClient
         details = msg.details || {}
         details[:procedure] = call[:p] unless details[:procedure]
         details[:type] = 'call'
+        details[:session] = self
 
         c = call[:c]
         c.call(nil, self._error_to_hash(msg), details) if c

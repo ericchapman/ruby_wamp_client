@@ -167,7 +167,7 @@ describe WampClient::Session do
         expect(subscription).not_to be_nil
         expect(subscription.id).to eq(3456)
         expect(error).to be_nil
-        expect(details).to eq({topic: 'test.topic', type: 'subscribe'})
+        expect(details).to eq({topic: 'test.topic', type: 'subscribe', session: session})
       end
 
       request_id = session._requests[:subscribe].keys.first
@@ -197,7 +197,7 @@ describe WampClient::Session do
 
         expect(subscription).to be_nil
         expect(error[:error]).to eq('this.failed')
-        expect(details).to eq({fail: true, topic: 'test.topic', type: 'subscribe'})
+        expect(details).to eq({fail: true, topic: 'test.topic', type: 'subscribe', session: session})
       end
 
       request_id = session._requests[:subscribe].keys.first
@@ -222,7 +222,7 @@ describe WampClient::Session do
       handler = lambda do |args, kwargs, details|
         count += 1
 
-        expect(details).to eq({test:1, publication:7890})
+        expect(details).to eq({test:1, publication:7890, session: session})
         expect(args).to eq([2])
         expect(kwargs).to eq({param: 'value'})
       end
@@ -299,7 +299,7 @@ describe WampClient::Session do
 
         expect(subscription.id).to eq(@subscription.id)
         expect(error).to be_nil
-        expect(details).to eq({topic: 'test.topic', type: 'unsubscribe'})
+        expect(details).to eq({topic: 'test.topic', type: 'unsubscribe', session: session})
       end
 
       @request_id = session._requests[:unsubscribe].keys.first
@@ -344,7 +344,7 @@ describe WampClient::Session do
 
         expect(subscription).to be_nil
         expect(error[:error]).to eq('this.failed')
-        expect(details).to eq({fail: true, topic: 'test.topic', type: 'unsubscribe'})
+        expect(details).to eq({fail: true, topic: 'test.topic', type: 'unsubscribe', session: session})
       end
 
       @request_id = session._requests[:unsubscribe].keys.first
@@ -420,7 +420,7 @@ describe WampClient::Session do
 
         expect(publication).not_to be_nil
         expect(error).to be_nil
-        expect(details).to eq({topic: 'test.topic', type: 'publish', publication: 5678})
+        expect(details).to eq({topic: 'test.topic', type: 'publish', session: session, publication: 5678})
       end
 
       @request_id = session._requests[:publish].keys.first
@@ -446,7 +446,7 @@ describe WampClient::Session do
 
         expect(publication).to be_nil
         expect(error[:error]).to eq('this.failed')
-        expect(details).to eq({fail: true, topic: 'test.topic', type: 'publish'})
+        expect(details).to eq({fail: true, topic: 'test.topic', type: 'publish', session: session})
       end
 
       @request_id = session._requests[:publish].keys.first
@@ -509,7 +509,7 @@ describe WampClient::Session do
         expect(registration).not_to be_nil
         expect(registration.id).to eq(3456)
         expect(error).to be_nil
-        expect(details).to eq({procedure: 'test.procedure', type: 'register'})
+        expect(details).to eq({procedure: 'test.procedure', type: 'register', session: session})
       end
       request_id = session._requests[:register].keys.first
 
@@ -538,7 +538,7 @@ describe WampClient::Session do
 
         expect(registration).to be_nil
         expect(error[:error]).to eq('this.failed')
-        expect(details).to eq({fail: true, procedure: 'test.procedure', type: 'register'})
+        expect(details).to eq({fail: true, procedure: 'test.procedure', type: 'register', session: session})
       end
 
       request_id = session._requests[:register].keys.first
@@ -923,7 +923,7 @@ describe WampClient::Session do
 
         expect(registration.id).to eq(@registration.id)
         expect(error).to be_nil
-        expect(details).to eq({procedure: 'test.procedure', type: 'unregister'})
+        expect(details).to eq({procedure: 'test.procedure', type: 'unregister', session: session})
       end
 
       @request_id = session._requests[:unregister].keys.first
@@ -968,7 +968,7 @@ describe WampClient::Session do
 
         expect(registration).to be_nil
         expect(error[:error]).to eq('this.failed')
-        expect(details).to eq({fail: true, procedure:'test.procedure', type: 'unregister'})
+        expect(details).to eq({fail: true, procedure:'test.procedure', type: 'unregister', session: session})
       end
 
       @request_id = session._requests[:unregister].keys.first
@@ -1033,7 +1033,7 @@ describe WampClient::Session do
         expect(result.args).to eq(['test'])
         expect(result.kwargs).to eq({test:true})
         expect(error).to be_nil
-        expect(details).to eq({procedure: 'test.procedure', type: 'call'})
+        expect(details).to eq({procedure: 'test.procedure', type: 'call', session: session})
       end
 
       @request_id = session._requests[:call].keys.first
@@ -1059,7 +1059,7 @@ describe WampClient::Session do
 
         expect(result).to be_nil
         expect(error[:error]).to eq('this.failed')
-        expect(details).to eq({fail: true, procedure: 'test.procedure', type: 'call'})
+        expect(details).to eq({fail: true, procedure: 'test.procedure', type: 'call', session: session})
       end
 
       @request_id = session._requests[:call].keys.first
@@ -1086,7 +1086,7 @@ describe WampClient::Session do
 
         expect(result).to be_nil
         expect(error[:error]).to eq('this.cancelled')
-        expect(details).to eq({fail: true, procedure: 'test.procedure', type: 'call'})
+        expect(details).to eq({fail: true, procedure: 'test.procedure', type: 'call', session: session})
       end
 
       @request_id = session._requests[:call].keys.first
