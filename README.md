@@ -8,6 +8,9 @@ Client for talking to a WAMP Router.  This is defined [here](https://tools.ietf.
 
 ## Revision History
 
+ - v0.0.8:
+   - Exposed 'yield' publicly to allow higher level libraries to not use the 'defer'
+   - Removed library version dependency
  - v0.0.7:
    - Added 'session' to the 'details' in the callbacks and handlers
  - v0.0.6:

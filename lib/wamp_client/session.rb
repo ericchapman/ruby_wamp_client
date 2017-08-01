@@ -693,7 +693,10 @@ module WampClient
     end
 
     # Sends a result for the invocation
-    def _send_INVOCATION_result(request, result, options={}, check_defer=false)
+    # @param request [Integer] - The id of the request
+    # @param result [CallError, CallResult, anything] - If it is a CallError, the error will be returned
+    # @param options [Hash] - The options to be sent with the yield
+    def yield(request, result, options={}, check_defer=false)
       # Prevent responses for defers that have already completed or had an error
       if check_defer and not self._defers[request]
         return
@@ -745,7 +748,7 @@ module WampClient
 
               # On complete, send the result
               value.on_complete do |defer, result|
-                self._send_INVOCATION_result(defer.request, result, {}, true)
+                self.yield(defer.request, result, {}, true)
                 self._defers.delete(defer.request)
               end
 
@@ -758,13 +761,13 @@ module WampClient
               # For progressive, return the progress
               if value.is_a? WampClient::Defer::ProgressiveCallDefer
                 value.on_progress do |defer, result|
-                  self._send_INVOCATION_result(defer.request, result, {progress: true}, true)
+                  self.yield(defer.request, result, {progress: true}, true)
                 end
               end
 
             # Else it was a normal response
             else
-              self._send_INVOCATION_result(request, value)
+              self.yield(request, value)
             end
 
           rescue Exception => error
