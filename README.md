@@ -6,6 +6,8 @@
 
 Client for talking to a WAMP Router.  This is defined [here](https://tools.ietf.org/html/draft-oberstet-hybi-tavendo-wamp-02)
 
+Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integrate this GEM in to RAILS.
+
 ## Revision History
 
  - v0.0.8:
