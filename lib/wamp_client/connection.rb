@@ -25,13 +25,13 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 =end
 
-require 'websocket-eventmachine-client'
 require 'wamp_client/session'
-require 'wamp_client/transport'
+require 'wamp_client/transport/web_socket_event_machine'
+require 'wamp_client/transport/faye_web_socket'
 
 module WampClient
   class Connection
-    attr_accessor :options, :transport, :session
+    attr_accessor :options, :transport_class, :transport, :session
 
     @reconnect = true
 
@@ -79,6 +79,7 @@ module WampClient
 
     # @param options [Hash] The different options to pass to the connection
     # @option options [String] :uri The uri of the WAMP router to connect to
+    # @option options [String] :proxy The proxy to get to the router
     # @option options [String] :realm The realm to connect to
     # @option options [String,nil] :protocol The protocol (default if wamp.2.json)
     # @option options [String,nil] :authid The id to authenticate with
@@ -86,6 +87,7 @@ module WampClient
     # @option options [Hash] :headers Custom headers to include during the connection
     # @option options [WampClient::Serializer::Base] :serializer The serializer to use (default is json)
     def initialize(options)
+      self.transport_class = options.delete(:transport) || WampClient::Transport::WebSocket
       self.options = options || {}
     end
 
@@ -98,7 +100,7 @@ module WampClient
       @retry_timer = 1
       @retrying = false
 
-      EM.run do
+      self.transport_class.start_event_machine do
         # Create the transport
         self._create_transport
       end
@@ -156,11 +158,7 @@ module WampClient
       end
 
       # Initialize the transport
-      if self.options[:transport]
-        self.transport = self.options[:transport]
-      else
-        self.transport = WampClient::Transport::WebSocketTransport.new(self.options)
-      end
+      self.transport = self.transport_class.new(self.options)
 
       # Setup transport callbacks
       self.transport.on_open do
@@ -188,7 +186,7 @@ module WampClient
           self._retry unless @retrying
         else
           # Stop the Event Machine
-          EM.stop
+          self.transport_class.stop_event_machine
         end
       end
 
@@ -205,16 +203,16 @@ module WampClient
 
     def _retry
 
-      unless self.session and self.session.is_open?
+      unless self.session&.is_open?
         @retry_timer = 2*@retry_timer unless @retry_timer == 32
         @retrying = true
 
         self._create_transport
 
         puts "Attempting Reconnect... Next attempt in #{@retry_timer} seconds"
-        EM.add_timer(@retry_timer) {
+        self.transport_clase.add_timer(@retry_timer) do
           self._retry if @retrying
-        }
+        end
       end
 
     end

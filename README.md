@@ -10,6 +10,8 @@ Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integ
 
 ## Revision History
 
+ - v0.0.9:
+   - Added support for transport override and 'faye-websocket' transport
  - v0.0.8:
    - Exposed 'yield' publicly to allow higher level libraries to not use the 'defer'
    - Removed library version dependency
@@ -140,6 +142,44 @@ connection.on_challenge do |authmethod, extra|
 
 end
 ```
+
+#### Overriding Transport
+By default, the library will use the "websocket-eventmachine-client" Gem as the websocket transport.
+However the library also supports overriding this.
+
+##### GEM: faye-websocket
+To use this library, do the following
+
+Install the "faye-websocket" Gem:
+
+    $ gem install faye-websocket
+
+Override the transport by doing the following:
+
+```ruby
+require 'wamp_client'
+
+options = {
+    uri: 'ws://127.0.0.1:8080/ws',
+    realm: 'realm1',
+    proxy: { # See faye-websocket documentation
+      :origin  => 'http://username:password@proxy.example.com',
+      :headers => {'User-Agent' => 'ruby'}
+    },  
+    transport: WampClient::Transport::FayeWebSocket
+}
+
+connection = WampClient::Connection.new(options)
+
+# More code
+``` 
+
+Note that the "faye-wesbsocket" transport supports passing in a "proxy" as shown above.
+ 
+##### Custom
+You can also create your own transports by wrapping them in a "Transport" object
+and including as shown above.  For more details on this, see the files in
+"lib/wamp_client/transport"
 
 ### Authentication
 The library supports authentication.  Here is how to perform the different methods

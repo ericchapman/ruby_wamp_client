@@ -25,10 +25,31 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 =end
 
-require 'wamp_client/version'
-require 'wamp_client/message'
-require 'wamp_client/serializer'
-require 'wamp_client/connection'
-require 'wamp_client/session'
-require 'wamp_client/auth'
-require 'wamp_client/defer'
+require 'eventmachine'
+require_relative 'base'
+
+module WampClient
+  module Transport
+    class EventMachineBase < Base
+
+      def self.start_event_machine(&block)
+        EM.run do
+          block.call
+        end
+      end
+
+      def self.stop_event_machine
+        EM.stop
+      end
+
+      def self.add_timer(milliseconds, &callback)
+        delay = (milliseconds.to_f/1000.0).ceil
+        EM.add_timer(delay) {
+          callback.call
+        }
+      end
+
+    end
+  end
+end
+
