@@ -12,6 +12,7 @@ Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integ
 
  - v0.0.9:
    - Added support for transport override and 'faye-websocket' transport
+   - Added "on(event)" callback (still support legacy methods)
  - v0.0.8:
    - Exposed 'yield' publicly to allow higher level libraries to not use the 'defer'
    - Removed library version dependency
@@ -72,7 +73,7 @@ options = {
 }
 connection = WampClient::Connection.new(options)
 
-connection.on_join do |session, details|
+connection.on(:join) do |session, details|
   puts "Session Open"
 
   # Register for something
@@ -103,42 +104,42 @@ A connection is closed by simply calling "close"
 connection.close
 ```
 
-Note that the connection will still call "on_leave" and "on_disconnect" as it closes the session and the transport
+Note that the connection will still call "on(:leave)" and "on(:disconnect)" as it closes the session and the transport
 
 #### Callbacks
 A connection has the following callbacks
 
-**on_connect** - Called when the transport is opened
+**on(:connect)** - Called when the transport is opened
 ```ruby
-connection.on_connect do
+connection.on(:connect) do
 
 end
 ```
 
-**on_join** - Called when the session is established
+**on(:join)** - Called when the session is established
 ```ruby
-connection.on_join do |session, details|
+connection.on(:join) do |session, details|
 
 end
 ```
 
-**on_leave** - Called when the session is terminated
+**on(:leave)** - Called when the session is terminated
 ```ruby
-connection.on_leave do |reason, details|
+connection.on(:leave) do |reason, details|
 
 end
 ```
 
-**on_disconnect** - Called when the connection is terminated
+**on(:disconnect)** - Called when the connection is terminated
 ```ruby
-connection.on_disconnect do |reason|
+connection.on(:disconnect) do |reason|
 
 end
 ```
 
-**on_challenge** - Called when an authentication challenge is created
+**on(:challenge)** - Called when an authentication challenge is created
 ```ruby
-connection.on_challenge do |authmethod, extra|
+connection.on(:challenge) do |authmethod, extra|
 
 end
 ```
@@ -198,7 +199,7 @@ options = {
 }
 connection = WampClient::Connection.new(options)
 
-connection.on_challenge do |authmethod, extra|
+connection.on(:challenge) do |authmethod, extra|
   puts 'Challenge'
   if authmethod == 'wampcra'
     WampClient::Auth::Cra.sign('secret', extra[:challenge])
@@ -207,7 +208,7 @@ connection.on_challenge do |authmethod, extra|
   end
 end
 
-connection.on_join do |session, details|
+connection.on(:join) do |session, details|
   puts "Session Open"
 end
 

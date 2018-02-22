@@ -57,6 +57,22 @@ module WampClient
         @on_error = on_error
       end
 
+      # Simple setter for callbacks
+      def on(event, &callback)
+        case event
+          when :open
+            self.on_open(&callback)
+          when :close
+            self.on_close(&callback)
+          when :message
+            self.on_message(&callback)
+          when :error
+            self.on_error(&callback)
+          else
+            raise RuntimeError, "Unknown on(event) '#{event}'"
+        end
+      end
+
       attr_accessor :uri, :proxy, :headers, :protocol, :serializer, :connected
 
       # Constructor for the transport

@@ -91,7 +91,7 @@ describe WampClient::Transport do
 
       it 'disconnects from the router' do
         value = false
-        transport.on_close do
+        transport.on(:close) do
           value = true
         end
 
@@ -108,7 +108,7 @@ describe WampClient::Transport do
 
       it 'receives a message' do
         message = nil
-        transport.on_message do |msg, type|
+        transport.on(:message) do |msg, type|
           message = msg
         end
 
@@ -157,7 +157,7 @@ describe WampClient::Transport do
 
       it 'disconnects from the router' do
         value = false
-        transport.on_close do
+        transport.on(:close) do
           value = true
         end
 
@@ -174,7 +174,7 @@ describe WampClient::Transport do
 
       it 'receives a message' do
         message = nil
-        transport.on_message do |msg, type|
+        transport.on(:message) do |msg, type|
           message = msg
         end
 

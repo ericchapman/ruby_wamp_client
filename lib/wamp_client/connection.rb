@@ -77,6 +77,24 @@ module WampClient
       @on_disconnect = on_disconnect
     end
 
+    # Simple setter for callbacks
+    def on(event, &callback)
+      case event
+        when :connect
+          self.on_connect(&callback)
+        when :join
+          self.on_join(&callback)
+        when :challenge
+          self.on_challenge(&callback)
+        when :leave
+          self.on_leave(&callback)
+        when :disconnect
+          self.on_disconnect(&callback)
+        else
+          raise RuntimeError, "Unknown on(event) '#{event}'"
+      end
+    end
+
     # @param options [Hash] The different options to pass to the connection
     # @option options [String] :uri The uri of the WAMP router to connect to
     # @option options [String] :proxy The proxy to get to the router
