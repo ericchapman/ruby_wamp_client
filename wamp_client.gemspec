@@ -25,6 +25,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'simplecov'
   spec.add_development_dependency 'codecov'
   spec.add_development_dependency 'faye-websocket', '>= 0.10.4'
+  spec.required_ruby_version = '>= 2.0'
 
   spec.add_dependency 'websocket-eventmachine-client', '>= 1.1.0'
   spec.add_dependency 'json'
