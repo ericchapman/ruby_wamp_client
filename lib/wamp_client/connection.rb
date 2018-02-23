@@ -229,7 +229,7 @@ module WampClient
 
     def _retry
 
-      unless self.session&.is_open?
+      if self.session == nil or not self.session.is_open?
         @retry_timer = 2*@retry_timer unless @retry_timer == 32
         @retrying = true
 

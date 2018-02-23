@@ -68,7 +68,7 @@ module SpecHelper
 
     def initialize
       EM.add_timer(1) {
-        @onopen&.call
+        @onopen.call if @onopen != nil
       }
     end
 
@@ -88,7 +88,7 @@ module SpecHelper
     end
 
     def close
-      @onclose&.call
+      @onclose.call if @onclose != nil
       true
     end
 
@@ -97,7 +97,7 @@ module SpecHelper
     end
 
     def receive(message)
-      @onmessage&.call(message, {type:'text'})
+      @onmessage.call(message, {type:'text'}) if @onmessage != nil
     end
 
   end
@@ -111,7 +111,7 @@ module SpecHelper
 
     def initialize
       EM.add_timer(1) {
-        @on_open&.call(Event.new)
+        @on_open.call(Event.new) if @on_open != nil
       }
     end
 
@@ -131,7 +131,7 @@ module SpecHelper
     def close
       event = Event.new
       event.reason = 'closed'
-      @on_close&.call(event)
+      @on_close.call(event) if @on_close != nil
     end
 
     def send(message)
@@ -141,7 +141,7 @@ module SpecHelper
     def receive(message)
       event = Event.new
       event.data = message
-      @on_message&.call(event)
+      @on_message.call(event) if @on_message != nil
     end
 
   end
