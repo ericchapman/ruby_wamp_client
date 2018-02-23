@@ -13,6 +13,7 @@ Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integ
  - v0.0.9:
    - Added support for transport override and 'faye-websocket' transport
    - Added "on(event)" callback (still support legacy methods)
+   - Increased Test Coverage for 'Transport' and 'Connection' classes
  - v0.0.8:
    - Exposed 'yield' publicly to allow higher level libraries to not use the 'defer'
    - Removed library version dependency

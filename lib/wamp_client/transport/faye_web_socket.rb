@@ -42,13 +42,9 @@ module WampClient
       end
 
       def connect
-        self.socket = Faye::WebSocket::Client.new(
-            self.uri, [self.protocol],
-            {
-                :proxy => self.proxy,
-                :headers => self.headers
-            }
-        )
+        options = { :headers => self.headers }
+        options[:proxy] = self.proxy if self.proxy != nil
+        self.socket = Faye::WebSocket::Client.new(self.uri, [self.protocol], options)
 
         self.socket.on(:open) do |event|
           self.connected = true
@@ -62,6 +58,10 @@ module WampClient
         self.socket.on(:close) do |event|
           self.connected = false
           @on_close.call(event.reason) if @on_close
+        end
+
+        self.socket.on(:error) do |event|
+          @on_error.call(event.message) if @on_error
         end
       end
 

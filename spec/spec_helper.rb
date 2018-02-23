@@ -13,9 +13,9 @@ require "rspec/em"
 
 module SpecHelper
 
-  class TestTransport < WampClient::Transport::Base
-
-    attr_accessor :messages, :timer_callback
+  class TestTransport < WampClient::Transport::EventMachineBase
+    @@event_machine_on = false
+    attr_accessor :messages
 
     def initialize(options)
       super(options)
@@ -24,7 +24,27 @@ module SpecHelper
     end
 
     def connect
+      self.add_timer(1000) do
+        @on_open.call if @on_open
+      end
+    end
 
+    def disconnect
+      @connected = false
+      @on_close.call if @on_close
+    end
+
+    def self.start_event_machine(&block)
+      @@event_machine_on = true
+      block.call
+    end
+
+    def self.stop_event_machine
+      @@event_machine_on = false
+    end
+
+    def self.event_machine_on?
+      @@event_machine_on
     end
 
     def send_message(msg)
@@ -38,11 +58,7 @@ module SpecHelper
       deserialize = self.serializer.deserialize(serialize)
 
       # Call the received message
-      @on_message.call(deserialize) unless @on_message.nil?
-    end
-
-    def add_timer(milliseconds, &callback)
-      self.timer_callback = callback
+      @on_message.call(deserialize) if @on_message
     end
 
   end

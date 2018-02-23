@@ -167,6 +167,20 @@ module WampClient
       @on_challenge = on_challenge
     end
 
+    # Simple setter for callbacks
+    def on(event, &callback)
+      case event
+        when :join
+          self.on_join(&callback)
+        when :challenge
+          self.on_challenge(&callback)
+        when :leave
+          self.on_leave(&callback)
+        else
+          raise RuntimeError, "Unknown on(event) '#{event}'"
+      end
+    end
+
     attr_accessor :id, :realm, :transport, :verbose, :options
 
     # Private attributes
@@ -212,6 +226,7 @@ module WampClient
       # Setup session callbacks
       @on_join = nil
       @on_leave = nil
+      @on_challenge = nil
 
     end
 

@@ -52,6 +52,7 @@ module WampClient
       end
 
       # Callback when there is an error.  Parameters are
+      # @param msg [String] The message from the error
       @on_error
       def on_error(&on_error)
         @on_error = on_error
