@@ -44,6 +44,18 @@ describe WampClient::Connection do
     expect(SpecHelper::TestTransport.event_machine_on?).to eq(false)
   end
 
+  describe 'transport' do
+    it 'selects the default transport' do
+      connection = described_class.new({})
+      expect(connection.transport_class).to be(WampClient::Transport::WebSocketEventMachine)
+    end
+
+    it 'overrides the default transport' do
+      connection = described_class.new({ transport: WampClient::Transport::FayeWebSocket })
+      expect(connection.transport_class).to be(WampClient::Transport::FayeWebSocket)
+    end
+  end
+
   it 'opens the transport/session and sends the hello message' do
     called = false
     connection.on(:connect) do

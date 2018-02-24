@@ -235,7 +235,7 @@ module WampClient
 
         self._create_transport
 
-        puts "Attempting Reconnect... Next attempt in #{@retry_timer} seconds"
+        puts "Attempting Reconnect... Next attempt in #{@retry_timer} seconds" if self.verbose
         self.transport_class.add_timer(@retry_timer*1000) do
           self._retry if @retrying
         end
