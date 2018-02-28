@@ -1115,6 +1115,11 @@ describe WampClient::Session do
     end
 
     context 'timeout' do
+      include RSpec::EM::FakeClock
+
+      before { clock.stub }
+      after { clock.reset }
+
       it 'does not cancel a call if no timeout specified' do
         @defer = WampClient::Defer::ProgressiveCallDefer.new
 
@@ -1123,7 +1128,7 @@ describe WampClient::Session do
           count += 1
         end
 
-        expect(transport.timer_callback).to be_nil
+        clock.tick(2)
         expect(transport.messages.count).to eq(1)
       end
 
@@ -1135,8 +1140,7 @@ describe WampClient::Session do
           count += 1
         end
 
-        expect(transport.timer_callback).not_to be_nil
-        transport.timer_callback.call
+        clock.tick(2)
 
         expect(transport.messages.count).to eq(2)
 

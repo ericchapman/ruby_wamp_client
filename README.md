@@ -10,6 +10,10 @@ Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integ
 
 ## Revision History
 
+ - v0.0.9:
+   - Added support for transport override and 'faye-websocket' transport
+   - Added "on(event)" callback (still support legacy methods)
+   - Increased Test Coverage for 'Transport' and 'Connection' classes
  - v0.0.8:
    - Exposed 'yield' publicly to allow higher level libraries to not use the 'defer'
    - Removed library version dependency
@@ -70,7 +74,7 @@ options = {
 }
 connection = WampClient::Connection.new(options)
 
-connection.on_join do |session, details|
+connection.on(:join) do |session, details|
   puts "Session Open"
 
   # Register for something
@@ -101,45 +105,83 @@ A connection is closed by simply calling "close"
 connection.close
 ```
 
-Note that the connection will still call "on_leave" and "on_disconnect" as it closes the session and the transport
+Note that the connection will still call "on(:leave)" and "on(:disconnect)" as it closes the session and the transport
 
 #### Callbacks
 A connection has the following callbacks
 
-**on_connect** - Called when the transport is opened
+**on(:connect)** - Called when the transport is opened
 ```ruby
-connection.on_connect do
+connection.on(:connect) do
 
 end
 ```
 
-**on_join** - Called when the session is established
+**on(:join)** - Called when the session is established
 ```ruby
-connection.on_join do |session, details|
+connection.on(:join) do |session, details|
 
 end
 ```
 
-**on_leave** - Called when the session is terminated
+**on(:leave)** - Called when the session is terminated
 ```ruby
-connection.on_leave do |reason, details|
+connection.on(:leave) do |reason, details|
 
 end
 ```
 
-**on_disconnect** - Called when the connection is terminated
+**on(:disconnect)** - Called when the connection is terminated
 ```ruby
-connection.on_disconnect do |reason|
+connection.on(:disconnect) do |reason|
 
 end
 ```
 
-**on_challenge** - Called when an authentication challenge is created
+**on(:challenge)** - Called when an authentication challenge is created
 ```ruby
-connection.on_challenge do |authmethod, extra|
+connection.on(:challenge) do |authmethod, extra|
 
 end
 ```
+
+#### Overriding Transport
+By default, the library will use the "websocket-eventmachine-client" Gem as the websocket transport.
+However the library also supports overriding this.
+
+##### GEM: faye-websocket
+To use this library, do the following
+
+Install the "faye-websocket" Gem:
+
+    $ gem install faye-websocket
+
+Override the transport by doing the following:
+
+```ruby
+require 'wamp_client'
+
+options = {
+    uri: 'ws://127.0.0.1:8080/ws',
+    realm: 'realm1',
+    proxy: { # See faye-websocket documentation
+      :origin  => 'http://username:password@proxy.example.com',
+      :headers => {'User-Agent' => 'ruby'}
+    },  
+    transport: WampClient::Transport::FayeWebSocket
+}
+
+connection = WampClient::Connection.new(options)
+
+# More code
+``` 
+
+Note that the "faye-wesbsocket" transport supports passing in a "proxy" as shown above.
+ 
+##### Custom
+You can also create your own transports by wrapping them in a "Transport" object
+and including as shown above.  For more details on this, see the files in
+"lib/wamp_client/transport"
 
 ### Authentication
 The library supports authentication.  Here is how to perform the different methods
@@ -158,7 +200,7 @@ options = {
 }
 connection = WampClient::Connection.new(options)
 
-connection.on_challenge do |authmethod, extra|
+connection.on(:challenge) do |authmethod, extra|
   puts 'Challenge'
   if authmethod == 'wampcra'
     WampClient::Auth::Cra.sign('secret', extra[:challenge])
@@ -167,7 +209,7 @@ connection.on_challenge do |authmethod, extra|
   end
 end
 
-connection.on_join do |session, details|
+connection.on(:join) do |session, details|
   puts "Session Open"
 end
 

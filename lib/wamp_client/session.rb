@@ -25,7 +25,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 =end
 
-require 'wamp_client/transport'
+require 'wamp_client/transport/base'
 require 'wamp_client/message'
 require 'wamp_client/check'
 require 'wamp_client/version'
@@ -167,6 +167,20 @@ module WampClient
       @on_challenge = on_challenge
     end
 
+    # Simple setter for callbacks
+    def on(event, &callback)
+      case event
+        when :join
+          self.on_join(&callback)
+        when :challenge
+          self.on_challenge(&callback)
+        when :leave
+          self.on_leave(&callback)
+        else
+          raise RuntimeError, "Unknown on(event) '#{event}'"
+      end
+    end
+
     attr_accessor :id, :realm, :transport, :verbose, :options
 
     # Private attributes
@@ -212,6 +226,7 @@ module WampClient
       # Setup session callbacks
       @on_join = nil
       @on_leave = nil
+      @on_challenge = nil
 
     end
 
@@ -908,7 +923,7 @@ module WampClient
 
       # Timeout Logic
       if options[:timeout] and options[:timeout] > 0
-        self.transport.timer(options[:timeout]) do
+        self.transport.add_timer(options[:timeout]) do
           # Once the timer expires, if the call hasn't completed, cancel it
           if self._requests[:call][call.id]
             call.cancel

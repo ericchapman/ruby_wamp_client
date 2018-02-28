@@ -52,16 +52,34 @@ module WampClient
       end
 
       # Callback when there is an error.  Parameters are
+      # @param msg [String] The message from the error
       @on_error
       def on_error(&on_error)
         @on_error = on_error
       end
 
-      attr_accessor :type, :uri, :headers, :protocol, :serializer, :connected
+      # Simple setter for callbacks
+      def on(event, &callback)
+        case event
+          when :open
+            self.on_open(&callback)
+          when :close
+            self.on_close(&callback)
+          when :message
+            self.on_message(&callback)
+          when :error
+            self.on_error(&callback)
+          else
+            raise RuntimeError, "Unknown on(event) '#{event}'"
+        end
+      end
+
+      attr_accessor :uri, :proxy, :headers, :protocol, :serializer, :connected
 
       # Constructor for the transport
       # @param options [Hash] The connection options.  the different options are as follows
       # @option options [String] :uri The url to connect to
+      # @option options [String] :proxy The proxy to use
       # @option options [String] :protocol The protocol
       # @option options [Hash] :headers Custom headers to include during the connection
       # @option options [WampClient::Serializer::Base] :serializer The serializer to use
@@ -70,6 +88,7 @@ module WampClient
         # Initialize the parameters
         self.connected = false
         self.uri = options[:uri]
+        self.proxy = options[:proxy]
         self.headers = options[:headers] || {}
         self.protocol = options[:protocol] || 'wamp.2.json'
         self.serializer = options[:serializer] || WampClient::Serializer::JSONSerializer.new
@@ -109,62 +128,24 @@ module WampClient
       # Process the callback when the timer expires
       # @param [Integer] milliseconds - The number
       # @param [block] callback - The callback that is fired when the timer expires
-      def timer(milliseconds, &callback)
+      def self.add_timer(milliseconds, &callback)
+        # Implement in subclass
+      end
+      def add_timer(milliseconds, &callback)
+        self.class.add_timer(milliseconds, &callback)
+      end
+
+      # Method to start the event machine for the socket
+      def self.start_event_machine(&block)
+        # Implement in subclass
+      end
+
+      # Method to stop the vent machine
+      def self.stop_event_machine
         # Implement in subclass
       end
 
     end
 
-    # This implementation uses the 'websocket-eventmachine-client' Gem.  This is the default if no transport is included
-    class WebSocketTransport < Base
-      attr_accessor :socket
-
-      def initialize(options)
-        super(options)
-        self.type = 'websocket'
-        self.socket = nil
-      end
-
-      def connect
-        self.socket = WebSocket::EventMachine::Client.connect(
-            :uri => self.uri,
-            :headers => self.headers
-        )
-
-        self.socket.onopen do
-          self.connected = true
-          @on_open.call unless @on_open.nil?
-        end
-
-        self.socket.onmessage do |msg, type|
-          @on_message.call(self.serializer.deserialize(msg)) unless @on_message.nil?
-        end
-
-        self.socket.onclose do |code, reason|
-          self.connected = false
-          @on_close.call(reason) unless @on_close.nil?
-        end
-      end
-
-      def disconnect
-        self.connected = !self.socket.close  # close returns 'true' if the connection was closed immediately
-      end
-
-      def send_message(msg)
-        if self.connected
-          self.socket.send(self.serializer.serialize(msg), {type: 'text'})
-        else
-          raise RuntimeError, "Socket must be open to call 'send_message'"
-        end
-      end
-
-      def timer(milliseconds, &callback)
-        delay = (milliseconds.to_f/1000.0).ceil
-        EM.add_timer(delay) {
-          callback.call
-        }
-      end
-
-    end
   end
 end
