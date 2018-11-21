@@ -1,4 +1,4 @@
-# WampClient
+# Wamp::Client
 
 [![Gem Version](https://badge.fury.io/rb/wamp_client.svg)](https://badge.fury.io/rb/wamp_client)
 [![Circle CI](https://circleci.com/gh/ericchapman/ruby_wamp_client/tree/master.svg?&style=shield&circle-token=92813c17f9c9510c4c644e41683e7ba2572e0b2a)](https://circleci.com/gh/ericchapman/ruby_wamp_client/tree/master)
@@ -10,6 +10,8 @@ Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integ
 
 ## Revision History
 
+ - v0.1.0:
+   - BREAKING CHANGE - Changed all of the namespaces to be "Wamp::Client"
  - v0.0.9:
    - Added support for transport override and 'faye-websocket' transport
    - Added "on(event)" callback (still support legacy methods)
@@ -65,14 +67,14 @@ is open
 A connection can be created as follows
 
 ```ruby
-require 'wamp_client'
+require 'wamp/client'
 
 options = {
     uri: 'ws://127.0.0.1:8080/ws',
     realm: 'realm1',
     verbose: true
 }
-connection = WampClient::Connection.new(options)
+connection = Wamp::Client::Connection.new(options)
 
 connection.on(:join) do |session, details|
   puts "Session Open"
@@ -159,7 +161,7 @@ Install the "faye-websocket" Gem:
 Override the transport by doing the following:
 
 ```ruby
-require 'wamp_client'
+require 'wamp/client'
 
 options = {
     uri: 'ws://127.0.0.1:8080/ws',
@@ -168,10 +170,10 @@ options = {
       :origin  => 'http://username:password@proxy.example.com',
       :headers => {'User-Agent' => 'ruby'}
     },  
-    transport: WampClient::Transport::FayeWebSocket
+    transport: Wamp::Client::Transport::FayeWebSocket
 }
 
-connection = WampClient::Connection.new(options)
+connection = Wamp::Client::Connection.new(options)
 
 # More code
 ``` 
@@ -190,7 +192,7 @@ The library supports authentication.  Here is how to perform the different metho
 To perform WAMP CRA, do the following
 
 ```ruby
-require 'wamp_client'
+require 'wamp/client'
 
 options = {
     uri: 'ws://127.0.0.1:8080/ws',
@@ -198,12 +200,12 @@ options = {
     authid: 'joe',
     authmethods: ['wampcra']
 }
-connection = WampClient::Connection.new(options)
+connection = Wamp::Client::Connection.new(options)
 
 connection.on(:challenge) do |authmethod, extra|
   puts 'Challenge'
   if authmethod == 'wampcra'
-    WampClient::Auth::Cra.sign('secret', extra[:challenge])
+    Wamp::Client::Auth::Cra.sign('secret', extra[:challenge])
   else
     raise RuntimeError, "Unsupported auth method #{authmethod}"
   end
@@ -231,7 +233,7 @@ All handlers are called with the following parameters
  - args [Array] - Array of arguments
  - kwargs [Hash] - Hash of key/value arguments
  - details [Hash] - Hash containing some details about the call.  Details include
-   - session [WampClient::Session] - The session
+   - session [Wamp::Client::Session] - The session
    - etc.
 
 Some examples of this are shown below
@@ -261,7 +263,7 @@ All callbacks are called with the following parameters
  - error [Hash] - Hash containing "error", "args", and "kwargs" if an error occurred
  - details [Hash] - Hash containing some details about the call.  Details include
    - type [String] - The type of message
-   - session [WampClient::Session] - The session
+   - session [Wamp::Client::Session] - The session
    - etc.
 
 An example of this is shown below
@@ -503,9 +505,9 @@ Errors can either be raised OR returned as shown below
 handler = lambda do |args, kwargs, details|
   raise 'error'
   # OR
-  raise WampClient::CallError.new('wamp.error', ['some error'], {details: true})
+  raise Wamp::Client::CallError.new('wamp.error', ['some error'], {details: true})
   # OR
-  WampClient::CallError.new('wamp.error', ['some error'], {details: true})
+  Wamp::Client::CallError.new('wamp.error', ['some error'], {details: true})
 end
 session.register('com.example.procedure', handler)
 ```
@@ -518,7 +520,7 @@ caller.  This is shown below
 
 ```ruby
 def add(args, kwargs, details)
-  defer = WampClient::Defer::CallDefer.new
+  defer = Wamp::Client::Defer::CallDefer.new
   EM.add_timer(2) {  # Something Async
     defer.succeed(args[0]+args[1])
   }
@@ -531,9 +533,9 @@ Errors are returned as follows
 
 ```ruby
 def add(args, kwargs, details)
-  defer = WampClient::Defer::CallDefer.new
+  defer = Wamp::Client::Defer::CallDefer.new
   EM.add_timer(2) {  # Something Async
-    defer.fail(WampClient::CallError.new('test.error'))
+    defer.fail(Wamp::Client::CallError.new('test.error'))
   }
   defer
 end
@@ -559,15 +561,15 @@ end
 
 ```ruby
 def add(args, kwargs, details)
-  defer = WampClient::Defer::ProgressiveCallDefer.new
+  defer = Wamp::Client::Defer::ProgressiveCallDefer.new
   EM.add_timer(2) {  # Something Async
-    defer.progress(WampClient::CallResult.new([1,2,3]))
+    defer.progress(Wamp::Client::CallResult.new([1,2,3]))
   }
   EM.add_timer(4) {  # Something Async
-    defer.progress(WampClient::CallResult.new([4,5,6]))
+    defer.progress(Wamp::Client::CallResult.new([4,5,6]))
   }
   EM.add_timer(6) {  # Something Async
-    defer.succeed(WampClient::CallResult.new)
+    defer.succeed(Wamp::Client::CallResult.new)
   }
   defer
 end
@@ -610,20 +612,20 @@ def interrupt_handler(request, mode)
 end
 
 def add(args, kwargs, details)
-  defer = WampClient::Defer::ProgressiveCallDefer.new
+  defer = Wamp::Client::Defer::ProgressiveCallDefer.new
   EM.add_timer(2) {  # Something Async
     if @interrupts[defer.request].nil?
-      defer.progress(WampClient::CallResult.new([1,2,3]))
+      defer.progress(Wamp::Client::CallResult.new([1,2,3]))
     end
   }
   EM.add_timer(4) {  # Something Async
     if @interrupts[defer.request].nil?
-      defer.progress(WampClient::CallResult.new([4,5,6]))
+      defer.progress(Wamp::Client::CallResult.new([4,5,6]))
     end
   }
   EM.add_timer(6) {  # Something Async
     if @interrupts[defer.request].nil?
-      defer.succeed(WampClient::CallResult.new)
+      defer.succeed(Wamp::Client::CallResult.new)
     end
     @interrupts.delete(request)
   }
@@ -663,8 +665,8 @@ The *lib/wamp_client/message.rb* file and the *spec/message_spec.rb* file are au
 
     $ cd scripts
     $ ./gen_message.rb
-    $ mv message.rb.tmp ../lib/wamp_client/message.rb
-    $ mv message_spec.rb.tmp ../spec/message_spec.rb
+    $ mv message.rb.tmp ../lib/wamp/client/message.rb
+    $ mv message_spec.rb.tmp ../spec/wamp/client/message_spec.rb
 
 As I was writing the code for the messages I caught myself cutting and pasting allot and decided these would be
 better suited to be autogenerated.

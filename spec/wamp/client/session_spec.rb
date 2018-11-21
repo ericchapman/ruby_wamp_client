@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-describe WampClient::Session do
+describe Wamp::Client::Session do
   let (:transport) { SpecHelper::TestTransport.new({}) }
-  let (:session) { WampClient::Session.new(transport) }
+  let (:session) { Wamp::Client::Session.new(transport) }
 
   describe 'establishment' do
 
@@ -23,7 +23,7 @@ describe WampClient::Session do
 
       # Check generated message
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::HELLO)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::HELLO)
       expect(transport.messages[0][1]).to eq('test')  # Realm Test
       expect(transport.messages[0][2][:roles]).not_to be_nil  # Roles exists
       expect(transport.messages[0][2].key?(:authid)).to eq(false)  # Ensure authid is omitted
@@ -37,7 +37,7 @@ describe WampClient::Session do
       expect(@leave_count).to eq(0)
 
       # Send welcome message
-      welcome = WampClient::Message::Welcome.new(1234, {})
+      welcome = Wamp::Client::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
 
       # Check new state of session
@@ -57,7 +57,7 @@ describe WampClient::Session do
       session.join('test')
 
       # Send abort message
-      abort = WampClient::Message::Abort.new({}, 'test.reason')
+      abort = Wamp::Client::Message::Abort.new({}, 'test.reason')
       transport.receive_message(abort.payload)
 
       # Check new state of session
@@ -74,7 +74,7 @@ describe WampClient::Session do
       expect { session.leave('felt.like.it') }.to raise_exception("Session must be opened to call 'leave'")
 
       session.join('test')
-      welcome = WampClient::Message::Welcome.new(1234, {})
+      welcome = Wamp::Client::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
 
       # Leave the session
@@ -89,7 +89,7 @@ describe WampClient::Session do
       expect(@leave_count).to eq(0)
 
       # Send Goodbye response from server
-      goodbye = WampClient::Message::Goodbye.new({}, 'wamp.error.goodbye_and_out')
+      goodbye = Wamp::Client::Message::Goodbye.new({}, 'wamp.error.goodbye_and_out')
       transport.receive_message(goodbye.payload)
 
       # Check state
@@ -105,16 +105,16 @@ describe WampClient::Session do
     it 'performs a connect then server initiated goodbye' do
 
       session.join('test')
-      welcome = WampClient::Message::Welcome.new(1234, {})
+      welcome = Wamp::Client::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
 
       # Send Goodbye from server
-      goodbye = WampClient::Message::Goodbye.new({}, 'felt.like.it')
+      goodbye = Wamp::Client::Message::Goodbye.new({}, 'felt.like.it')
       transport.receive_message(goodbye.payload)
 
       # Check state
       expect(transport.messages.count).to eq(2)
-      expect(transport.messages[1][0]).to eq(WampClient::Message::Types::GOODBYE)
+      expect(transport.messages[1][0]).to eq(Wamp::Client::Message::Types::GOODBYE)
       expect(transport.messages[1][2]).to eq('wamp.error.goodbye_and_out')  # Realm Test
       expect(session.id).to be_nil
       expect(session.is_open?).to eq(false)
@@ -133,7 +133,7 @@ describe WampClient::Session do
       expect { session.subscribe('test.topic', nil, {test: 1}) }.to raise_exception("Session must be open to call 'subscribe'")
 
       session.join('test')
-      welcome = WampClient::Message::Welcome.new(1234, {})
+      welcome = Wamp::Client::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
       transport.messages = []
     end
@@ -146,7 +146,7 @@ describe WampClient::Session do
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::SUBSCRIBE)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::SUBSCRIBE)
       expect(transport.messages[0][1]).to eq(request_id)
       expect(transport.messages[0][2]).to eq({test: 1})
       expect(transport.messages[0][3]).to eq('test.topic')
@@ -175,7 +175,7 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate server response
-      subscribed = WampClient::Message::Subscribed.new(request_id, 3456)
+      subscribed = Wamp::Client::Message::Subscribed.new(request_id, 3456)
       transport.receive_message(subscribed.payload)
 
       expect(count).to eq(1)
@@ -203,7 +203,7 @@ describe WampClient::Session do
       request_id = session._requests[:subscribe].keys.first
 
       # Generate server response
-      error = WampClient::Message::Error.new(WampClient::Message::Types::SUBSCRIBE,
+      error = Wamp::Client::Message::Error.new(Wamp::Client::Message::Types::SUBSCRIBE,
                                              request_id, {fail: true}, 'this.failed')
       transport.receive_message(error.payload)
 
@@ -233,13 +233,13 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate server response
-      subscribed = WampClient::Message::Subscribed.new(request_id, 3456)
+      subscribed = Wamp::Client::Message::Subscribed.new(request_id, 3456)
       transport.receive_message(subscribed.payload)
 
       expect(count).to eq(0)
 
       # Generate server event
-      event = WampClient::Message::Event.new(3456, 7890, {test:1}, [2], {param: 'value'})
+      event = Wamp::Client::Message::Event.new(3456, 7890, {test:1}, [2], {param: 'value'})
       transport.receive_message(event.payload)
 
       expect(count).to eq(1)
@@ -255,7 +255,7 @@ describe WampClient::Session do
       expect { session.unsubscribe(nil) }.to raise_exception("Session must be open to call 'unsubscribe'")
 
       session.join('test')
-      welcome = WampClient::Message::Welcome.new(1234, {})
+      welcome = Wamp::Client::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
 
       session.subscribe('test.topic', lambda {}, {test: 1}) do |subscription, error, details|
@@ -266,7 +266,7 @@ describe WampClient::Session do
       @request_id = session._requests[:subscribe].keys.first
 
       # Generate server response
-      subscribed = WampClient::Message::Subscribed.new(@request_id, 3456)
+      subscribed = Wamp::Client::Message::Subscribed.new(@request_id, 3456)
       transport.receive_message(subscribed.payload)
 
       transport.messages = []
@@ -279,7 +279,7 @@ describe WampClient::Session do
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::UNSUBSCRIBE)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::UNSUBSCRIBE)
       expect(transport.messages[0][1]).to eq(@request_id)
       expect(transport.messages[0][2]).to eq(@subscription.id)
 
@@ -307,7 +307,7 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      unsubscribed = WampClient::Message::Unsubscribed.new(@request_id)
+      unsubscribed = Wamp::Client::Message::Unsubscribed.new(@request_id)
       transport.receive_message(unsubscribed.payload)
 
       # Check the request dictionary
@@ -325,7 +325,7 @@ describe WampClient::Session do
       @request_id = session._requests[:unsubscribe].keys.first
 
       # Generate Server Response
-      unsubscribed = WampClient::Message::Unsubscribed.new(@request_id)
+      unsubscribed = Wamp::Client::Message::Unsubscribed.new(@request_id)
       transport.receive_message(unsubscribed.payload)
 
       # Check the request dictionary
@@ -352,7 +352,7 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      error = WampClient::Message::Error.new(WampClient::Message::Types::UNSUBSCRIBE,
+      error = Wamp::Client::Message::Error.new(Wamp::Client::Message::Types::UNSUBSCRIBE,
                                              @request_id, {fail: true}, 'this.failed')
       transport.receive_message(error.payload)
 
@@ -375,7 +375,7 @@ describe WampClient::Session do
       expect { session.publish('test.topic') }.to raise_exception("Session must be open to call 'publish'")
 
       session.join('test')
-      welcome = WampClient::Message::Welcome.new(1234, {})
+      welcome = Wamp::Client::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
 
       transport.messages = []
@@ -388,7 +388,7 @@ describe WampClient::Session do
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::PUBLISH)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::PUBLISH)
       expect(transport.messages[0][1]).to eq(@request_id)
       expect(transport.messages[0][2]).to eq({acknowledge:true})
 
@@ -428,7 +428,7 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      published = WampClient::Message::Published.new(@request_id, 5678)
+      published = Wamp::Client::Message::Published.new(@request_id, 5678)
       transport.receive_message(published.payload)
 
       # Check the request dictionary
@@ -454,7 +454,7 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      error = WampClient::Message::Error.new(WampClient::Message::Types::PUBLISH,
+      error = Wamp::Client::Message::Error.new(Wamp::Client::Message::Types::PUBLISH,
                                              @request_id, {fail: true}, 'this.failed')
       transport.receive_message(error.payload)
 
@@ -474,7 +474,7 @@ describe WampClient::Session do
       expect { session.register('test.procedure', nil, {test: 1}) }.to raise_exception("Session must be open to call 'register'")
 
       session.join('test')
-      welcome = WampClient::Message::Welcome.new(1234, {})
+      welcome = Wamp::Client::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
       transport.messages = []
     end
@@ -487,7 +487,7 @@ describe WampClient::Session do
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::REGISTER)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::REGISTER)
       expect(transport.messages[0][1]).to eq(request_id)
       expect(transport.messages[0][2]).to eq({test: 1})
       expect(transport.messages[0][3]).to eq('test.procedure')
@@ -516,7 +516,7 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate server response
-      registered = WampClient::Message::Registered.new(request_id, 3456)
+      registered = Wamp::Client::Message::Registered.new(request_id, 3456)
       transport.receive_message(registered.payload)
 
       expect(count).to eq(1)
@@ -544,7 +544,7 @@ describe WampClient::Session do
       request_id = session._requests[:register].keys.first
 
       # Generate server response
-      error = WampClient::Message::Error.new(WampClient::Message::Types::REGISTER,
+      error = Wamp::Client::Message::Error.new(Wamp::Client::Message::Types::REGISTER,
                                              request_id, {fail: true}, 'this.failed')
       transport.receive_message(error.payload)
 
@@ -568,7 +568,7 @@ describe WampClient::Session do
       expect { session.register('test.procedure', nil, {test: 1}) }.to raise_exception("Session must be open to call 'register'")
 
       session.join('test')
-      welcome = WampClient::Message::Welcome.new(1234, {})
+      welcome = Wamp::Client::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
 
       # Register Response
@@ -577,7 +577,7 @@ describe WampClient::Session do
       end
       session.register('test.procedure', handler, {test: 1})
       request_id = session._requests[:register].keys.first
-      registered = WampClient::Message::Registered.new(request_id, 3456)
+      registered = Wamp::Client::Message::Registered.new(request_id, 3456)
       transport.receive_message(registered.payload)
 
       # Defer Register
@@ -587,7 +587,7 @@ describe WampClient::Session do
       session.register('test.defer.procedure', defer_handler)
 
       request_id = session._requests[:register].keys.first
-      registered = WampClient::Message::Registered.new(request_id, 4567)
+      registered = Wamp::Client::Message::Registered.new(request_id, 4567)
       transport.receive_message(registered.payload)
 
       # Register Error Response
@@ -596,16 +596,16 @@ describe WampClient::Session do
       end
       session.register('test.procedure.error', handler, {test: 1})
       request_id = session._requests[:register].keys.first
-      registered = WampClient::Message::Registered.new(request_id, 5678)
+      registered = Wamp::Client::Message::Registered.new(request_id, 5678)
       transport.receive_message(registered.payload)
 
       # Register Call Error Response
       handler = lambda do |args, kwargs, details|
-        raise WampClient::CallError.new('test.error', ['error'])
+        raise Wamp::Client::CallError.new('test.error', ['error'])
       end
       session.register('test.procedure.call.error', handler, {test: 1})
       request_id = session._requests[:register].keys.first
-      registered = WampClient::Message::Registered.new(request_id, 6789)
+      registered = Wamp::Client::Message::Registered.new(request_id, 6789)
       transport.receive_message(registered.payload)
 
       # Defer Interrupt Register
@@ -617,7 +617,7 @@ describe WampClient::Session do
       session.register('test.defer.interrupt.procedure', defer_handler, nil, defer_interrupt_handler)
 
       request_id = session._requests[:register].keys.first
-      registered = WampClient::Message::Registered.new(request_id, 7896)
+      registered = Wamp::Client::Message::Registered.new(request_id, 7896)
       transport.receive_message(registered.payload)
 
       transport.messages = []
@@ -628,12 +628,12 @@ describe WampClient::Session do
       @response = nil
 
       # Generate server event
-      invocation = WampClient::Message::Invocation.new(7890, 3456, {test:1}, [2], {param: 'value'})
+      invocation = Wamp::Client::Message::Invocation.new(7890, 3456, {test:1}, [2], {param: 'value'})
       transport.receive_message(invocation.payload)
 
       # Check and make sure yield message was sent
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::YIELD)
       expect(transport.messages[0][1]).to eq(7890)
       expect(transport.messages[0][2]).to eq({})
       expect(transport.messages[0][3]).to be_nil
@@ -645,12 +645,12 @@ describe WampClient::Session do
       @response = 'response'
 
       # Generate server event
-      invocation = WampClient::Message::Invocation.new(7890, 3456, {test:1}, [2], {param: 'value'})
+      invocation = Wamp::Client::Message::Invocation.new(7890, 3456, {test:1}, [2], {param: 'value'})
       transport.receive_message(invocation.payload)
 
       # Check and make sure yield message was sent
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::YIELD)
       expect(transport.messages[0][1]).to eq(7890)
       expect(transport.messages[0][2]).to eq({})
       expect(transport.messages[0][3]).to eq(['response'])
@@ -659,15 +659,15 @@ describe WampClient::Session do
 
     it 'result response' do
 
-      @response = WampClient::CallResult.new(['test'], {test:1})
+      @response = Wamp::Client::CallResult.new(['test'], {test:1})
 
       # Generate server event
-      invocation = WampClient::Message::Invocation.new(7890, 3456, {test:1}, [2], {param: 'value'})
+      invocation = Wamp::Client::Message::Invocation.new(7890, 3456, {test:1}, [2], {param: 'value'})
       transport.receive_message(invocation.payload)
 
       # Check and make sure yield message was sent
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::YIELD)
       expect(transport.messages[0][1]).to eq(7890)
       expect(transport.messages[0][2]).to eq({})
       expect(transport.messages[0][3]).to eq(['test'])
@@ -678,13 +678,13 @@ describe WampClient::Session do
     it 'raise error response' do
 
       # Generate server event
-      invocation = WampClient::Message::Invocation.new(7890, 5678, {test:1}, [2], {param: 'value'})
+      invocation = Wamp::Client::Message::Invocation.new(7890, 5678, {test:1}, [2], {param: 'value'})
       transport.receive_message(invocation.payload)
 
       # Check and make sure yield message was sent
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::ERROR)
-      expect(transport.messages[0][1]).to eq(WampClient::Message::Types::INVOCATION)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::ERROR)
+      expect(transport.messages[0][1]).to eq(Wamp::Client::Message::Types::INVOCATION)
       expect(transport.messages[0][2]).to eq(7890)
       expect(transport.messages[0][3]).to eq({})
       expect(transport.messages[0][4]).to eq('wamp.error.runtime')
@@ -695,13 +695,13 @@ describe WampClient::Session do
     it 'raise call error response' do
 
       # Generate server event
-      invocation = WampClient::Message::Invocation.new(7890, 6789, {test:1}, [2], {param: 'value'})
+      invocation = Wamp::Client::Message::Invocation.new(7890, 6789, {test:1}, [2], {param: 'value'})
       transport.receive_message(invocation.payload)
 
       # Check and make sure yield message was sent
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::ERROR)
-      expect(transport.messages[0][1]).to eq(WampClient::Message::Types::INVOCATION)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::ERROR)
+      expect(transport.messages[0][1]).to eq(Wamp::Client::Message::Types::INVOCATION)
       expect(transport.messages[0][2]).to eq(7890)
       expect(transport.messages[0][3]).to eq({})
       expect(transport.messages[0][4]).to eq('test.error')
@@ -711,16 +711,16 @@ describe WampClient::Session do
 
     it 'return error response' do
 
-      @response = WampClient::CallError.new('wamp.error.runtime', ['error'], {error: true})
+      @response = Wamp::Client::CallError.new('wamp.error.runtime', ['error'], {error: true})
 
       # Generate server event
-      invocation = WampClient::Message::Invocation.new(7890, 3456, {test:1}, [2], {param: 'value'})
+      invocation = Wamp::Client::Message::Invocation.new(7890, 3456, {test:1}, [2], {param: 'value'})
       transport.receive_message(invocation.payload)
 
       # Check and make sure yield message was sent
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::ERROR)
-      expect(transport.messages[0][1]).to eq(WampClient::Message::Types::INVOCATION)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::ERROR)
+      expect(transport.messages[0][1]).to eq(Wamp::Client::Message::Types::INVOCATION)
       expect(transport.messages[0][2]).to eq(7890)
       expect(transport.messages[0][3]).to eq({})
       expect(transport.messages[0][4]).to eq('wamp.error.runtime')
@@ -731,12 +731,12 @@ describe WampClient::Session do
 
     it 'defer normal response' do
 
-      @response = WampClient::CallResult.new(['test'], {test:1})
+      @response = Wamp::Client::CallResult.new(['test'], {test:1})
 
-      @defer = WampClient::Defer::CallDefer.new
+      @defer = Wamp::Client::Defer::CallDefer.new
 
       # Generate server event
-      invocation = WampClient::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
+      invocation = Wamp::Client::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
       transport.receive_message(invocation.payload)
 
       expect(transport.messages.count).to eq(0)
@@ -745,7 +745,7 @@ describe WampClient::Session do
 
       # Check and make sure yield message was sent
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::YIELD)
       expect(transport.messages[0][1]).to eq(7890)
       expect(transport.messages[0][2]).to eq({})
       expect(transport.messages[0][3]).to eq(['test'])
@@ -755,10 +755,10 @@ describe WampClient::Session do
 
     it 'defer error normal response' do
 
-      @defer = WampClient::Defer::CallDefer.new
+      @defer = Wamp::Client::Defer::CallDefer.new
 
       # Generate server event
-      invocation = WampClient::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
+      invocation = Wamp::Client::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
       transport.receive_message(invocation.payload)
 
       expect(transport.messages.count).to eq(0)
@@ -767,8 +767,8 @@ describe WampClient::Session do
 
       # Check and make sure yield message was sent
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::ERROR)
-      expect(transport.messages[0][1]).to eq(WampClient::Message::Types::INVOCATION)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::ERROR)
+      expect(transport.messages[0][1]).to eq(Wamp::Client::Message::Types::INVOCATION)
       expect(transport.messages[0][2]).to eq(7890)
       expect(transport.messages[0][3]).to eq({})
       expect(transport.messages[0][4]).to eq('wamp.error.runtime')
@@ -778,12 +778,12 @@ describe WampClient::Session do
 
     it 'defer error object response' do
 
-      @response = WampClient::CallError.new('wamp.error.runtime', ['error'], {error: true})
+      @response = Wamp::Client::CallError.new('wamp.error.runtime', ['error'], {error: true})
 
-      @defer = WampClient::Defer::CallDefer.new
+      @defer = Wamp::Client::Defer::CallDefer.new
 
       # Generate server event
-      invocation = WampClient::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
+      invocation = Wamp::Client::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
       transport.receive_message(invocation.payload)
 
       expect(transport.messages.count).to eq(0)
@@ -792,8 +792,8 @@ describe WampClient::Session do
 
       # Check and make sure yield message was sent
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::ERROR)
-      expect(transport.messages[0][1]).to eq(WampClient::Message::Types::INVOCATION)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::ERROR)
+      expect(transport.messages[0][1]).to eq(Wamp::Client::Message::Types::INVOCATION)
       expect(transport.messages[0][2]).to eq(7890)
       expect(transport.messages[0][3]).to eq({})
       expect(transport.messages[0][4]).to eq('wamp.error.runtime')
@@ -807,16 +807,16 @@ describe WampClient::Session do
 
         @response = nil
 
-        @defer = WampClient::Defer::CallDefer.new
+        @defer = Wamp::Client::Defer::CallDefer.new
 
         # Generate server event
-        invocation = WampClient::Message::Invocation.new(7890, 7896, {test:1}, [2], {param: 'value'})
+        invocation = Wamp::Client::Message::Invocation.new(7890, 7896, {test:1}, [2], {param: 'value'})
         transport.receive_message(invocation.payload)
 
         expect(transport.messages.count).to eq(0)
 
         # Generate the interrupt from the broker/dealer
-        interrupt = WampClient::Message::Interrupt.new(7890, { mode: 'killnowait'})
+        interrupt = Wamp::Client::Message::Interrupt.new(7890, { mode: 'killnowait'})
         transport.receive_message(interrupt.payload)
 
         # Check and make sure request and mode were sent
@@ -825,8 +825,8 @@ describe WampClient::Session do
 
         # Check and make sure error message was sent
         expect(transport.messages.count).to eq(1)
-        expect(transport.messages[0][0]).to eq(WampClient::Message::Types::ERROR)
-        expect(transport.messages[0][1]).to eq(WampClient::Message::Types::INVOCATION)
+        expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::ERROR)
+        expect(transport.messages[0][1]).to eq(Wamp::Client::Message::Types::INVOCATION)
         expect(transport.messages[0][2]).to eq(7890)
         expect(transport.messages[0][3]).to eq({})
         expect(transport.messages[0][4]).to eq('wamp.error.runtime')
@@ -842,16 +842,16 @@ describe WampClient::Session do
 
         @response = 'custom'
 
-        @defer = WampClient::Defer::CallDefer.new
+        @defer = Wamp::Client::Defer::CallDefer.new
 
         # Generate server event
-        invocation = WampClient::Message::Invocation.new(7890, 7896, {test:1}, [2], {param: 'value'})
+        invocation = Wamp::Client::Message::Invocation.new(7890, 7896, {test:1}, [2], {param: 'value'})
         transport.receive_message(invocation.payload)
 
         expect(transport.messages.count).to eq(0)
 
         # Generate the interrupt from the broker/dealer
-        interrupt = WampClient::Message::Interrupt.new(7890, { mode: 'kill'})
+        interrupt = Wamp::Client::Message::Interrupt.new(7890, { mode: 'kill'})
         transport.receive_message(interrupt.payload)
 
         # Check and make sure request and mode were sent
@@ -860,8 +860,8 @@ describe WampClient::Session do
 
         # Check and make sure error message was sent
         expect(transport.messages.count).to eq(1)
-        expect(transport.messages[0][0]).to eq(WampClient::Message::Types::ERROR)
-        expect(transport.messages[0][1]).to eq(WampClient::Message::Types::INVOCATION)
+        expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::ERROR)
+        expect(transport.messages[0][1]).to eq(Wamp::Client::Message::Types::INVOCATION)
         expect(transport.messages[0][2]).to eq(7890)
         expect(transport.messages[0][3]).to eq({})
         expect(transport.messages[0][4]).to eq('wamp.error.runtime')
@@ -879,7 +879,7 @@ describe WampClient::Session do
       expect { session.unregister(nil) }.to raise_exception("Session must be open to call 'unregister'")
 
       session.join('test')
-      welcome = WampClient::Message::Welcome.new(1234, {})
+      welcome = Wamp::Client::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
 
       session.register('test.procedure', lambda {}, {test: 1}) do |registration, error, details|
@@ -890,7 +890,7 @@ describe WampClient::Session do
       @request_id = session._requests[:register].keys.first
 
       # Generate server response
-      registered = WampClient::Message::Registered.new(@request_id, 3456)
+      registered = Wamp::Client::Message::Registered.new(@request_id, 3456)
       transport.receive_message(registered.payload)
 
       transport.messages = []
@@ -903,7 +903,7 @@ describe WampClient::Session do
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::UNREGISTER)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::UNREGISTER)
       expect(transport.messages[0][1]).to eq(@request_id)
       expect(transport.messages[0][2]).to eq(@registration.id)
 
@@ -931,7 +931,7 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      unregistered = WampClient::Message::Unregistered.new(@request_id)
+      unregistered = Wamp::Client::Message::Unregistered.new(@request_id)
       transport.receive_message(unregistered.payload)
 
       # Check the request dictionary
@@ -949,7 +949,7 @@ describe WampClient::Session do
       @request_id = session._requests[:unregister].keys.first
 
       # Generate Server Response
-      unregistered = WampClient::Message::Unregistered.new(@request_id)
+      unregistered = Wamp::Client::Message::Unregistered.new(@request_id)
       transport.receive_message(unregistered.payload)
 
       # Check the request dictionary
@@ -976,7 +976,7 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      error = WampClient::Message::Error.new(WampClient::Message::Types::UNREGISTER,
+      error = Wamp::Client::Message::Error.new(Wamp::Client::Message::Types::UNREGISTER,
                                              @request_id, {fail: true}, 'this.failed')
       transport.receive_message(error.payload)
 
@@ -999,7 +999,7 @@ describe WampClient::Session do
       expect { session.call('test.procedure') }.to raise_exception("Session must be open to call 'call'")
 
       session.join('test')
-      welcome = WampClient::Message::Welcome.new(1234, {})
+      welcome = Wamp::Client::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
 
       transport.messages = []
@@ -1012,7 +1012,7 @@ describe WampClient::Session do
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::CALL)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::CALL)
       expect(transport.messages[0][1]).to eq(@request_id)
       expect(transport.messages[0][2]).to eq({})
 
@@ -1041,7 +1041,7 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      result = WampClient::Message::Result.new(@request_id, {}, ['test'], {test:true})
+      result = Wamp::Client::Message::Result.new(@request_id, {}, ['test'], {test:true})
       transport.receive_message(result.payload)
 
       # Check the request dictionary
@@ -1067,7 +1067,7 @@ describe WampClient::Session do
       expect(count).to eq(0)
 
       # Generate Server Response
-      error = WampClient::Message::Error.new(WampClient::Message::Types::CALL,
+      error = Wamp::Client::Message::Error.new(Wamp::Client::Message::Types::CALL,
                                              @request_id, {fail: true}, 'this.failed')
       transport.receive_message(error.payload)
 
@@ -1098,12 +1098,12 @@ describe WampClient::Session do
 
       # Check transport
       expect(transport.messages.count).to eq(2)
-      expect(transport.messages[1][0]).to eq(WampClient::Message::Types::CANCEL)
+      expect(transport.messages[1][0]).to eq(Wamp::Client::Message::Types::CANCEL)
       expect(transport.messages[1][1]).to eq(call.id)
       expect(transport.messages[1][2]).to eq({mode: 'kill'})
 
       # Generate Server Response
-      error = WampClient::Message::Error.new(WampClient::Message::Types::CALL,
+      error = Wamp::Client::Message::Error.new(Wamp::Client::Message::Types::CALL,
                                              @request_id, {fail: true}, 'this.cancelled')
       transport.receive_message(error.payload)
 
@@ -1121,7 +1121,7 @@ describe WampClient::Session do
       after { clock.reset }
 
       it 'does not cancel a call if no timeout specified' do
-        @defer = WampClient::Defer::ProgressiveCallDefer.new
+        @defer = Wamp::Client::Defer::ProgressiveCallDefer.new
 
         count = 0
         session.call('test.procedure', nil, nil) do |result, error, details|
@@ -1133,7 +1133,7 @@ describe WampClient::Session do
       end
 
       it 'does cancel a call if a timeout is specified' do
-        @defer = WampClient::Defer::ProgressiveCallDefer.new
+        @defer = Wamp::Client::Defer::ProgressiveCallDefer.new
 
         count = 0
         call = session.call('test.procedure', nil, nil, {timeout: 1000}) do |result, error, details|
@@ -1144,7 +1144,7 @@ describe WampClient::Session do
 
         expect(transport.messages.count).to eq(2)
 
-        expect(transport.messages[1][0]).to eq(WampClient::Message::Types::CANCEL)
+        expect(transport.messages[1][0]).to eq(Wamp::Client::Message::Types::CANCEL)
         expect(transport.messages[1][1]).to eq(call.id)
         expect(transport.messages[1][2]).to eq({mode: 'skip'})
       end
@@ -1155,7 +1155,7 @@ describe WampClient::Session do
 
     before(:each) do
       session.join('test')
-      welcome = WampClient::Message::Welcome.new(1234, {})
+      welcome = Wamp::Client::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
 
       transport.messages = []
@@ -1171,14 +1171,14 @@ describe WampClient::Session do
       @request_id = session._requests[:call].keys.first
 
       # Send results
-      result = WampClient::Message::Result.new(@request_id, {progress:true}, ['test'])
+      result = Wamp::Client::Message::Result.new(@request_id, {progress:true}, ['test'])
       transport.receive_message(result.payload)
       transport.receive_message(result.payload)
       transport.receive_message(result.payload)
       transport.receive_message(result.payload)
 
       # Send ending
-      result = WampClient::Message::Result.new(@request_id, {}, ['test'])
+      result = Wamp::Client::Message::Result.new(@request_id, {}, ['test'])
       transport.receive_message(result.payload)
 
       expect(results.count).to eq(1)
@@ -1195,20 +1195,20 @@ describe WampClient::Session do
       @request_id = session._requests[:call].keys.first
 
       # Send results
-      result = WampClient::Message::Result.new(@request_id, {progress:true}, ['test'])
+      result = Wamp::Client::Message::Result.new(@request_id, {progress:true}, ['test'])
       transport.receive_message(result.payload)
       transport.receive_message(result.payload)
       transport.receive_message(result.payload)
       transport.receive_message(result.payload)
 
       # Send ending
-      result = WampClient::Message::Result.new(@request_id, {}, ['test'])
+      result = Wamp::Client::Message::Result.new(@request_id, {}, ['test'])
       transport.receive_message(result.payload)
 
       expect(results.count).to eq(5)
 
       # Send More to ensure they are not appended
-      result = WampClient::Message::Result.new(@request_id, {progress:true}, ['test'])
+      result = Wamp::Client::Message::Result.new(@request_id, {progress:true}, ['test'])
       transport.receive_message(result.payload)
       transport.receive_message(result.payload)
       transport.receive_message(result.payload)
@@ -1222,47 +1222,47 @@ describe WampClient::Session do
     it 'callee result support' do
 
       # Defer Register
-      @defer = WampClient::Defer::ProgressiveCallDefer.new
+      @defer = Wamp::Client::Defer::ProgressiveCallDefer.new
       defer_handler = lambda do |args, kwargs, details|
         @defer
       end
       session.register('test.defer.procedure', defer_handler)
 
       request_id = session._requests[:register].keys.first
-      registered = WampClient::Message::Registered.new(request_id, 4567)
+      registered = Wamp::Client::Message::Registered.new(request_id, 4567)
       transport.receive_message(registered.payload)
 
       transport.messages = []
 
       # Generate server event
-      invocation = WampClient::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
+      invocation = Wamp::Client::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
       transport.receive_message(invocation.payload)
 
       expect(transport.messages.count).to eq(0)
       expect(session._defers.count).to eq(1)
 
-      @defer.progress(WampClient::CallResult.new(['test1']))
+      @defer.progress(Wamp::Client::CallResult.new(['test1']))
       expect(session._defers.count).to eq(1)
-      @defer.progress(WampClient::CallResult.new(['test2']))
+      @defer.progress(Wamp::Client::CallResult.new(['test2']))
       expect(session._defers.count).to eq(1)
-      @defer.succeed(WampClient::CallResult.new(['test3']))
+      @defer.succeed(Wamp::Client::CallResult.new(['test3']))
       expect(session._defers.count).to eq(0)
 
       expect(transport.messages.count).to eq(3)
 
       # Check and make sure yield message was sent
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::YIELD)
       expect(transport.messages[0][1]).to eq(7890)
       expect(transport.messages[0][2]).to eq({progress: true})
       expect(transport.messages[0][3]).to eq(['test1'])
 
-      expect(transport.messages[1][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[1][0]).to eq(Wamp::Client::Message::Types::YIELD)
       expect(transport.messages[1][1]).to eq(7890)
       expect(transport.messages[1][2]).to eq({progress: true})
       expect(transport.messages[1][3]).to eq(['test2'])
 
       expect(transport.messages.count).to eq(3)
-      expect(transport.messages[2][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[2][0]).to eq(Wamp::Client::Message::Types::YIELD)
       expect(transport.messages[2][1]).to eq(7890)
       expect(transport.messages[2][2]).to eq({})
       expect(transport.messages[2][3]).to eq(['test3'])
@@ -1272,47 +1272,47 @@ describe WampClient::Session do
     it 'callee error support' do
 
       # Defer Register
-      @defer = WampClient::Defer::ProgressiveCallDefer.new
+      @defer = Wamp::Client::Defer::ProgressiveCallDefer.new
       defer_handler = lambda do |args, kwargs, details|
         @defer
       end
       session.register('test.defer.procedure', defer_handler)
 
       request_id = session._requests[:register].keys.first
-      registered = WampClient::Message::Registered.new(request_id, 4567)
+      registered = Wamp::Client::Message::Registered.new(request_id, 4567)
       transport.receive_message(registered.payload)
 
       transport.messages = []
 
       # Generate server event
-      invocation = WampClient::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
+      invocation = Wamp::Client::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
       transport.receive_message(invocation.payload)
 
       expect(transport.messages.count).to eq(0)
       expect(session._defers.count).to eq(1)
 
-      @defer.progress(WampClient::CallResult.new(['test1']))
+      @defer.progress(Wamp::Client::CallResult.new(['test1']))
       expect(session._defers.count).to eq(1)
-      @defer.progress(WampClient::CallResult.new(['test2']))
+      @defer.progress(Wamp::Client::CallResult.new(['test2']))
       expect(session._defers.count).to eq(1)
-      @defer.fail(WampClient::CallError.new('test.error'))
+      @defer.fail(Wamp::Client::CallError.new('test.error'))
       expect(session._defers.count).to eq(0)
 
       expect(transport.messages.count).to eq(3)
 
       # Check and make sure yield message was sent
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::YIELD)
       expect(transport.messages[0][1]).to eq(7890)
       expect(transport.messages[0][2]).to eq({progress: true})
       expect(transport.messages[0][3]).to eq(['test1'])
 
-      expect(transport.messages[1][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[1][0]).to eq(Wamp::Client::Message::Types::YIELD)
       expect(transport.messages[1][1]).to eq(7890)
       expect(transport.messages[1][2]).to eq({progress: true})
       expect(transport.messages[1][3]).to eq(['test2'])
 
-      expect(transport.messages[2][0]).to eq(WampClient::Message::Types::ERROR)
-      expect(transport.messages[2][1]).to eq(WampClient::Message::Types::INVOCATION)
+      expect(transport.messages[2][0]).to eq(Wamp::Client::Message::Types::ERROR)
+      expect(transport.messages[2][1]).to eq(Wamp::Client::Message::Types::INVOCATION)
       expect(transport.messages[2][2]).to eq(7890)
       expect(transport.messages[2][3]).to eq({})
       expect(transport.messages[2][4]).to eq('test.error')
@@ -1322,47 +1322,47 @@ describe WampClient::Session do
     it 'callee error support' do
 
       # Defer Register
-      @defer = WampClient::Defer::ProgressiveCallDefer.new
+      @defer = Wamp::Client::Defer::ProgressiveCallDefer.new
       defer_handler = lambda do |args, kwargs, details|
         @defer
       end
       session.register('test.defer.procedure', defer_handler)
 
       request_id = session._requests[:register].keys.first
-      registered = WampClient::Message::Registered.new(request_id, 4567)
+      registered = Wamp::Client::Message::Registered.new(request_id, 4567)
       transport.receive_message(registered.payload)
 
       transport.messages = []
 
       # Generate server event
-      invocation = WampClient::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
+      invocation = Wamp::Client::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
       transport.receive_message(invocation.payload)
 
       expect(transport.messages.count).to eq(0)
       expect(session._defers.count).to eq(1)
 
-      @defer.progress(WampClient::CallResult.new(['test1']))
+      @defer.progress(Wamp::Client::CallResult.new(['test1']))
       expect(session._defers.count).to eq(1)
-      @defer.progress(WampClient::CallResult.new(['test2']))
+      @defer.progress(Wamp::Client::CallResult.new(['test2']))
       expect(session._defers.count).to eq(1)
-      @defer.fail(WampClient::CallError.new('test.error'))
+      @defer.fail(Wamp::Client::CallError.new('test.error'))
       expect(session._defers.count).to eq(0)
 
       expect(transport.messages.count).to eq(3)
 
       # Check and make sure yield message was sent
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::YIELD)
       expect(transport.messages[0][1]).to eq(7890)
       expect(transport.messages[0][2]).to eq({progress: true})
       expect(transport.messages[0][3]).to eq(['test1'])
 
-      expect(transport.messages[1][0]).to eq(WampClient::Message::Types::YIELD)
+      expect(transport.messages[1][0]).to eq(Wamp::Client::Message::Types::YIELD)
       expect(transport.messages[1][1]).to eq(7890)
       expect(transport.messages[1][2]).to eq({progress: true})
       expect(transport.messages[1][3]).to eq(['test2'])
 
-      expect(transport.messages[2][0]).to eq(WampClient::Message::Types::ERROR)
-      expect(transport.messages[2][1]).to eq(WampClient::Message::Types::INVOCATION)
+      expect(transport.messages[2][0]).to eq(Wamp::Client::Message::Types::ERROR)
+      expect(transport.messages[2][1]).to eq(Wamp::Client::Message::Types::INVOCATION)
       expect(transport.messages[2][2]).to eq(7890)
       expect(transport.messages[2][3]).to eq({})
       expect(transport.messages[2][4]).to eq('test.error')
@@ -1382,19 +1382,19 @@ describe WampClient::Session do
 
       session.on_challenge do |authmethod, extra|
         expect(authmethod).to eq('wampcra')
-        WampClient::Auth::Cra.sign(secret, extra[:challenge])
+        Wamp::Client::Auth::Cra.sign(secret, extra[:challenge])
       end
     end
 
     it 'challenge => authenticate' do
 
       # Send the challenge
-      challenge_msg = WampClient::Message::Challenge.new('wampcra', {challenge: challenge})
+      challenge_msg = Wamp::Client::Message::Challenge.new('wampcra', {challenge: challenge})
       transport.receive_message(challenge_msg.payload)
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
-      expect(transport.messages[0][0]).to eq(WampClient::Message::Types::AUTHENTICATE)
+      expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::AUTHENTICATE)
       expect(transport.messages[0][1]).to eq('Pji30JC9tb/T9tbEwxw5i0RyRa5UVBxuoIVTgT7hnkE=')
       expect(transport.messages[0][2]).to eq({})
 
@@ -1403,11 +1403,11 @@ describe WampClient::Session do
     it 'accepts a wampcra challenge' do
 
       # Send the challenge
-      challenge_msg = WampClient::Message::Challenge.new('wampcra', {challenge: challenge})
+      challenge_msg = Wamp::Client::Message::Challenge.new('wampcra', {challenge: challenge})
       transport.receive_message(challenge_msg.payload)
 
       # Send welcome message
-      welcome = WampClient::Message::Welcome.new(1234, {})
+      welcome = Wamp::Client::Message::Welcome.new(1234, {})
       transport.receive_message(welcome.payload)
 
       # Check new state of session
@@ -1419,11 +1419,11 @@ describe WampClient::Session do
     it 'rejects a wampcra challenge' do
 
       # Send the challenge
-      challenge_msg = WampClient::Message::Challenge.new('wampcra', {challenge: challenge})
+      challenge_msg = Wamp::Client::Message::Challenge.new('wampcra', {challenge: challenge})
       transport.receive_message(challenge_msg.payload)
 
       # Send abort message
-      abort = WampClient::Message::Abort.new({}, 'test.reason')
+      abort = Wamp::Client::Message::Abort.new({}, 'test.reason')
       transport.receive_message(abort.payload)
 
       # Check new state of session

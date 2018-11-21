@@ -1,6 +1,6 @@
 =begin
 
-Copyright (c) 2016 Eric Chapman
+Copyright (c) 2018 Eric Chapman
 
 MIT License
 
@@ -25,10 +25,10 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 =end
 
-require 'wamp_client/version'
-require 'wamp_client/message'
-require 'wamp_client/serializer'
-require 'wamp_client/connection'
-require 'wamp_client/session'
-require 'wamp_client/auth'
-require 'wamp_client/defer'
+require 'wamp/client/version'
+require 'wamp/client/message'
+require 'wamp/client/serializer'
+require 'wamp/client/connection'
+require 'wamp/client/session'
+require 'wamp/client/auth'
+require 'wamp/client/defer'

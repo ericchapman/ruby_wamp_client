@@ -1,6 +1,6 @@
 =begin
 
-Copyright (c) 2016 Eric Chapman
+Copyright (c) 2018 Eric Chapman
 
 MIT License
 
@@ -25,21 +25,45 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 =end
 
-require 'openssl'
-require 'base64'
+require 'json'
 
-module WampClient
-  module Auth
-    module Cra
+module Wamp
+  module Client
+    module Serializer
+      class Base
 
-      # Generates the signature from the challenge
-      # @param key [String]
-      # @param challenge [String]
-      def self.sign(key, challenge)
-        hash  = OpenSSL::HMAC.digest('sha256', key, challenge)
-        Base64.encode64(hash).gsub(/\n/,'')
+        attr_accessor :type
+
+        # Serializes the object
+        # @param object - The object to serialize
+        def serialize(object)
+
+        end
+
+        # Deserializes the object
+        # @param string [String] - The string to deserialize
+        # @return The deserialized object
+        def deserialize(string)
+
+        end
+
       end
 
+      class JSONSerializer < Base
+
+        def initialize
+          self.type = 'json'
+        end
+
+        def serialize(object)
+          JSON.generate object
+        end
+
+        def deserialize(string)
+          JSON.parse(string, {:symbolize_names => true})
+        end
+
+      end
     end
   end
 end

@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe WampClient::Connection do
+describe Wamp::Client::Connection do
   include RSpec::EM::FakeClock
 
   before { clock.stub }
@@ -26,13 +26,13 @@ describe WampClient::Connection do
 
   def open_session_from_server
     # Send welcome form server
-    welcome = WampClient::Message::Welcome.new(1234, {})
+    welcome = Wamp::Client::Message::Welcome.new(1234, {})
     transport.receive_message(welcome.payload)
   end
 
   def close_session_from_server
     # Send goodbye from server
-    goodbye = WampClient::Message::Goodbye.new({}, 'felt.like.it')
+    goodbye = Wamp::Client::Message::Goodbye.new({}, 'felt.like.it')
     transport.receive_message(goodbye.payload)
   end
 
@@ -47,12 +47,12 @@ describe WampClient::Connection do
   describe 'transport' do
     it 'selects the default transport' do
       connection = described_class.new({})
-      expect(connection.transport_class).to be(WampClient::Transport::WebSocketEventMachine)
+      expect(connection.transport_class).to be(Wamp::Client::Transport::WebSocketEventMachine)
     end
 
     it 'overrides the default transport' do
-      connection = described_class.new({ transport: WampClient::Transport::FayeWebSocket })
-      expect(connection.transport_class).to be(WampClient::Transport::FayeWebSocket)
+      connection = described_class.new({ transport: Wamp::Client::Transport::FayeWebSocket })
+      expect(connection.transport_class).to be(Wamp::Client::Transport::FayeWebSocket)
     end
   end
 
@@ -67,7 +67,7 @@ describe WampClient::Connection do
     expect(transport).not_to be_nil
     expect(session).not_to be_nil
     expect(transport.messages.count).to eq(1)
-    expect(transport.messages[0][0]).to eq(WampClient::Message::Types::HELLO)
+    expect(transport.messages[0][0]).to eq(Wamp::Client::Message::Types::HELLO)
 
     expect(called).to eq(true)
   end

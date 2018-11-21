@@ -1,6 +1,6 @@
 =begin
 
-Copyright (c) 2016 Eric Chapman
+Copyright (c) 2018 Eric Chapman
 
 MIT License
 
@@ -25,44 +25,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 =end
 
-module WampClient
-  module Defer
-
-    class CallDefer
-      attr_accessor :request, :registration
-
-      @on_complete
-      def on_complete(&on_complete)
-        @on_complete = on_complete
-      end
-
-      @on_error
-      def on_error(&on_error)
-        @on_error = on_error
-      end
-
-      def succeed(result)
-        @on_complete.call(self, result) if @on_complete
-      end
-
-      def fail(error)
-        @on_error.call(self, error) if @on_error
-      end
-
-    end
-
-    class ProgressiveCallDefer < CallDefer
-
-      @on_progress
-      def on_progress(&on_progress)
-        @on_progress = on_progress
-      end
-
-      def progress(result)
-        @on_progress.call(self, result) if @on_progress
-      end
-
-    end
-
+module Wamp
+  module Client
+    VERSION = '0.1.0'
   end
 end

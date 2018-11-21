@@ -1,19 +1,19 @@
 require 'simplecov'
 SimpleCov.start
 
-require_relative '../lib/wamp_client'
+require_relative '../lib/wamp/client'
 
 if ENV['CODECOV_TOKEN']
   require 'codecov'
   SimpleCov.formatter = SimpleCov::Formatter::Codecov
 end
 
-require 'wamp_client'
+require 'wamp/client'
 require "rspec/em"
 
 module SpecHelper
 
-  class TestTransport < WampClient::Transport::EventMachineBase
+  class TestTransport < Wamp::Client::Transport::EventMachineBase
     @@event_machine_on = false
     attr_accessor :messages
 

@@ -3,8 +3,8 @@ require "rspec/em"
 require 'websocket-eventmachine-client'
 require 'faye/websocket'
 
-describe WampClient::Transport do
-  describe WampClient::Transport::EventMachineBase do
+describe Wamp::Client::Transport do
+  describe Wamp::Client::Transport::EventMachineBase do
     it '#start/stop' do
       value = 0
       described_class.start_event_machine do
@@ -65,7 +65,7 @@ describe WampClient::Transport do
       }
     }
 
-    describe WampClient::Transport::WebSocketEventMachine do
+    describe Wamp::Client::Transport::WebSocketEventMachine do
       include RSpec::EM::FakeClock
       before { clock.stub }
       after { clock.reset }
@@ -131,7 +131,7 @@ describe WampClient::Transport do
       end
     end
 
-    describe WampClient::Transport::FayeWebSocket do
+    describe Wamp::Client::Transport::FayeWebSocket do
       include RSpec::EM::FakeClock
       before { clock.stub }
       after { clock.reset }

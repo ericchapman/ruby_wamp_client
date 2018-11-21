@@ -1,6 +1,6 @@
 =begin
 
-Copyright (c) 2016 Eric Chapman
+Copyright (c) 2018 Eric Chapman
 
 MIT License
 
@@ -25,41 +25,44 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 =end
 
-require 'json'
+module Wamp
+  module Client
+    module Defer
 
-module WampClient
-  module Serializer
-    class Base
+      class CallDefer
+        attr_accessor :request, :registration
 
-      attr_accessor :type
+        @on_complete
+        def on_complete(&on_complete)
+          @on_complete = on_complete
+        end
 
-      # Serializes the object
-      # @param object - The object to serialize
-      def serialize(object)
+        @on_error
+        def on_error(&on_error)
+          @on_error = on_error
+        end
+
+        def succeed(result)
+          @on_complete.call(self, result) if @on_complete
+        end
+
+        def fail(error)
+          @on_error.call(self, error) if @on_error
+        end
 
       end
 
-      # Deserializes the object
-      # @param string [String] - The string to deserialize
-      # @return The deserialized object
-      def deserialize(string)
+      class ProgressiveCallDefer < CallDefer
 
-      end
+        @on_progress
+        def on_progress(&on_progress)
+          @on_progress = on_progress
+        end
 
-    end
+        def progress(result)
+          @on_progress.call(self, result) if @on_progress
+        end
 
-    class JSONSerializer < Base
-
-      def initialize
-        self.type = 'json'
-      end
-
-      def serialize(object)
-        JSON.generate object
-      end
-
-      def deserialize(string)
-        JSON.parse(string, {:symbolize_names => true})
       end
 
     end

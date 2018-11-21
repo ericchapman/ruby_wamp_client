@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-describe WampClient::Check do
+describe Wamp::Client::Check do
 
   class DummyClass
-    include WampClient::Check
+    include Wamp::Client::Check
   end
 
   describe '#check_equal' do

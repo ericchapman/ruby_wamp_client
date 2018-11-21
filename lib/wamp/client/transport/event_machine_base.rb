@@ -1,6 +1,6 @@
 =begin
 
-Copyright (c) 2016 Eric Chapman
+Copyright (c) 2018 Eric Chapman
 
 MIT License
 
@@ -25,6 +25,33 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 =end
 
-module WampClient
-  VERSION = '0.0.9'
+require 'eventmachine'
+require_relative 'base'
+
+module Wamp
+  module Client
+    module Transport
+      class EventMachineBase < Base
+
+        def self.start_event_machine(&block)
+          EM.run do
+            block.call
+          end
+        end
+
+        def self.stop_event_machine
+          EM.stop
+        end
+
+        def self.add_timer(milliseconds, &callback)
+          delay = (milliseconds.to_f/1000.0).ceil
+          EM.add_timer(delay) {
+            callback.call
+          }
+        end
+
+      end
+    end
+  end
 end
+

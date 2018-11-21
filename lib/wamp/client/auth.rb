@@ -1,6 +1,6 @@
 =begin
 
-Copyright (c) 2016 Eric Chapman
+Copyright (c) 2018 Eric Chapman
 
 MIT License
 
@@ -25,31 +25,23 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 =end
 
-require 'eventmachine'
-require_relative 'base'
+require 'openssl'
+require 'base64'
 
-module WampClient
-  module Transport
-    class EventMachineBase < Base
+module Wamp
+  module Client
+    module Auth
+      module Cra
 
-      def self.start_event_machine(&block)
-        EM.run do
-          block.call
+        # Generates the signature from the challenge
+        # @param key [String]
+        # @param challenge [String]
+        def self.sign(key, challenge)
+          hash  = OpenSSL::HMAC.digest('sha256', key, challenge)
+          Base64.encode64(hash).gsub(/\n/,'')
         end
-      end
 
-      def self.stop_event_machine
-        EM.stop
       end
-
-      def self.add_timer(milliseconds, &callback)
-        delay = (milliseconds.to_f/1000.0).ceil
-        EM.add_timer(delay) {
-          callback.call
-        }
-      end
-
     end
   end
 end
-
