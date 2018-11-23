@@ -17,6 +17,18 @@ describe Wamp::Client::Transport do
       expect(value).to eq(10)
     end
 
+    it '#add_tick_loop' do
+      value = 0
+      described_class.start_event_machine do
+        described_class.add_tick_loop do
+          value += 1
+          described_class.stop_event_machine if value == 10
+        end
+      end
+
+      expect(value).to eq(10)
+    end
+
     context '#add_timer' do
       include RSpec::EM::FakeClock
 

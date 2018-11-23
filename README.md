@@ -10,6 +10,8 @@ Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integ
 
 ## Revision History
 
+ - v0.1.1:
+   - Added 'add_tick_loop' method to the transport to abstract the event machine
  - v0.1.0:
    - BREAKING CHANGE - Changed all of the namespaces to be "Wamp::Client"
  - v0.0.9:
@@ -146,6 +148,26 @@ connection.on(:challenge) do |authmethod, extra|
 
 end
 ```
+
+#### Event Tick
+You can run a task on every event machine tick by using the transport class
+method 'add_tick_loop'
+
+```ruby
+require 'wamp/client'
+
+options = {
+    uri: 'ws://127.0.0.1:8080/ws',
+    realm: 'realm1',
+}
+
+connection = Wamp::Client::Connection.new(options)
+
+connection.transport_class.add_tick_loop do
+  # Do something periodic
+end
+
+``` 
 
 #### Overriding Transport
 By default, the library will use the "websocket-eventmachine-client" Gem as the websocket transport.

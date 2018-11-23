@@ -50,6 +50,10 @@ module Wamp
           }
         end
 
+        def self.add_tick_loop(&block)
+          EM.tick_loop(&block)
+        end
+
       end
     end
   end

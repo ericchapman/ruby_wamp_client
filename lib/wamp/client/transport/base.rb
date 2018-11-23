@@ -146,6 +146,10 @@ module Wamp
           # Implement in subclass
         end
 
+        # Method to add a tick loop to the event machine
+        def self.add_tick_loop(&block)
+          # Implement in subclass
+        end
       end
     end
   end

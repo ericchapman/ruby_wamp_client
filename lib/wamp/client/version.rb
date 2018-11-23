@@ -27,6 +27,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 module Wamp
   module Client
-    VERSION = '0.1.0'
+    VERSION = '0.1.1'
   end
 end
