@@ -10,6 +10,8 @@ Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integ
 
 ## Revision History
 
+ - v0.1.2:
+   - Updated logging to use the standard Ruby logger
  - v0.1.1:
    - Added 'add_tick_loop' method to the transport to abstract the event machine
  - v0.1.0:

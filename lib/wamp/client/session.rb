@@ -181,7 +181,7 @@ module Wamp
         end
       end
 
-      attr_accessor :id, :realm, :transport, :verbose, :options
+      attr_accessor :id, :realm, :transport, :options
 
       # Private attributes
       attr_accessor :_goodbye_sent, :_requests, :_subscriptions, :_registrations, :_defers
@@ -197,7 +197,6 @@ module Wamp
         self.id = nil
         self.realm = nil
         self.options = options || {}
-        self.verbose = self.options[:verbose]
 
         # Outstanding Requests
         self._requests = {
@@ -294,7 +293,7 @@ module Wamp
       # Sends a message
       # @param msg [Wamp::Client::Message::Base]
       def _send_message(msg)
-        puts 'TX: ' + msg.to_s if self.verbose
+        logger.debug("#{self.class.name} TX: #{msg.to_s}")
         self.transport.send_message(msg.payload)
       end
 
@@ -304,10 +303,8 @@ module Wamp
 
         message = Wamp::Client::Message::Base.parse(msg)
 
-        if self.verbose
-          puts 'RX: ' + message.to_s if message
-          puts 'RX(non-wamp): ' + msg.to_s unless message
-        end
+        logger.debug("#{self.class.name} RX: #{message.to_s}")
+        logger.debug("#{self.class.name} RX(non-samp): #{msg.to_s}")
 
         # WAMP Session is not open
         if self.id.nil?
@@ -995,6 +992,14 @@ module Wamp
       end
 
       #endregion
+
+      private
+
+      # Returns the logger
+      #
+      def logger
+        Wamp::Client.logger
+      end
 
     end
   end

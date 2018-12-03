@@ -32,7 +32,7 @@ require 'wamp/client/transport/faye_web_socket'
 module Wamp
   module Client
     class Connection
-      attr_accessor :options, :transport_class, :transport, :session, :verbose
+      attr_accessor :options, :transport_class, :transport, :session
 
       @reconnect = true
 
@@ -108,7 +108,6 @@ module Wamp
       def initialize(options)
         self.transport_class = options.delete(:transport) || Wamp::Client::Transport::WebSocketEventMachine
         self.options = options || {}
-        self.verbose = options[:verbose] || false
       end
 
       # Opens the connection
@@ -183,7 +182,8 @@ module Wamp
 
         # Setup transport callbacks
         self.transport.on(:open) do
-          puts "TRANSPORT OPEN" if self.verbose
+
+          logger.info("#{self.class.name} TRANSPORT OPEN")
 
           # Call the callback
           @on_connect.call if @on_connect
@@ -194,7 +194,7 @@ module Wamp
         end
 
         self.transport.on(:close) do |reason|
-          puts "TRANSPORT CLOSED: #{reason}" if self.verbose
+          logger.info("#{self.class.name} TRANSPORT CLOSED: #{reason}")
           @open = false
 
           unless @retrying
@@ -214,7 +214,7 @@ module Wamp
         end
 
         self.transport.on(:error) do |message|
-          puts "TRANSPORT ERROR: #{message}"
+          logger.error("#{self.class.name} TRANSPORT ERROR: #{message}")
         end
 
         @open = true
@@ -236,12 +236,20 @@ module Wamp
 
           self._create_transport
 
-          puts "Attempting Reconnect... Next attempt in #{@retry_timer} seconds" if self.verbose
+          logger.info("#{self.class.name} RECONNECT in #{@retry_timer} seconds")
           self.transport_class.add_timer(@retry_timer*1000) do
             self._retry if @retrying
           end
         end
 
+      end
+
+      private
+
+      # Returns the logger
+      #
+      def logger
+        Wamp::Client.logger
       end
 
     end

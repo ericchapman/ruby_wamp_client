@@ -11,6 +11,8 @@ end
 require 'wamp/client'
 require "rspec/em"
 
+Wamp::Client.log_level = :error
+
 module SpecHelper
 
   class TestTransport < Wamp::Client::Transport::EventMachineBase
