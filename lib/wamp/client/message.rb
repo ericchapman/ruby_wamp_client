@@ -42,58 +42,7 @@ module Wamp
 
         # @param params [Array]
         def self.parse(params)
-          object = nil
-          if params[0] == Types::HELLO
-            object = Wamp::Client::Message::Hello.parse(params)
-          elsif params[0] == Types::WELCOME
-            object = Wamp::Client::Message::Welcome.parse(params)
-          elsif params[0] == Types::ABORT
-            object = Wamp::Client::Message::Abort.parse(params)
-          elsif params[0] == Types::CHALLENGE
-            object = Wamp::Client::Message::Challenge.parse(params)
-          elsif params[0] == Types::AUTHENTICATE
-            object = Wamp::Client::Message::Authenticate.parse(params)
-          elsif params[0] == Types::GOODBYE
-            object = Wamp::Client::Message::Goodbye.parse(params)
-          elsif params[0] == Types::ERROR
-            object = Wamp::Client::Message::Error.parse(params)
-          elsif params[0] == Types::PUBLISH
-            object = Wamp::Client::Message::Publish.parse(params)
-          elsif params[0] == Types::PUBLISHED
-            object = Wamp::Client::Message::Published.parse(params)
-          elsif params[0] == Types::SUBSCRIBE
-            object = Wamp::Client::Message::Subscribe.parse(params)
-          elsif params[0] == Types::SUBSCRIBED
-            object = Wamp::Client::Message::Subscribed.parse(params)
-          elsif params[0] == Types::UNSUBSCRIBE
-            object = Wamp::Client::Message::Unsubscribe.parse(params)
-          elsif params[0] == Types::UNSUBSCRIBED
-            object = Wamp::Client::Message::Unsubscribed.parse(params)
-          elsif params[0] == Types::EVENT
-            object = Wamp::Client::Message::Event.parse(params)
-          elsif params[0] == Types::CALL
-            object = Wamp::Client::Message::Call.parse(params)
-          elsif params[0] == Types::CANCEL
-            object = Wamp::Client::Message::Cancel.parse(params)
-          elsif params[0] == Types::RESULT
-            object = Wamp::Client::Message::Result.parse(params)
-          elsif params[0] == Types::REGISTER
-            object = Wamp::Client::Message::Register.parse(params)
-          elsif params[0] == Types::REGISTERED
-            object = Wamp::Client::Message::Registered.parse(params)
-          elsif params[0] == Types::UNREGISTER
-            object = Wamp::Client::Message::Unregister.parse(params)
-          elsif params[0] == Types::UNREGISTERED
-            object = Wamp::Client::Message::Unregistered.parse(params)
-          elsif params[0] == Types::INVOCATION
-            object = Wamp::Client::Message::Invocation.parse(params)
-          elsif params[0] == Types::INTERRUPT
-            object = Wamp::Client::Message::Interrupt.parse(params)
-          elsif params[0] == Types::YIELD
-            object = Wamp::Client::Message::Yield.parse(params)
-          end
-
-          object
+          nil
         end
       end
 
@@ -1315,6 +1264,39 @@ module Wamp
           'INTERRUPT > ' + self.payload.to_s
         end
 
+      end
+
+      TYPE_LOOKUP = {
+          Types::HELLO => Hello,
+          Types::WELCOME => Welcome,
+          Types::ABORT => Abort,
+          Types::CHALLENGE => Challenge,
+          Types::AUTHENTICATE => Authenticate,
+          Types::GOODBYE => Goodbye,
+          Types::ERROR => Error,
+          Types::PUBLISH => Publish,
+          Types::PUBLISHED => Published,
+          Types::SUBSCRIBE => Subscribe,
+          Types::SUBSCRIBED => Subscribed,
+          Types::UNSUBSCRIBE => Unsubscribe,
+          Types::UNSUBSCRIBED => Unsubscribed,
+          Types::EVENT => Event,
+          Types::CALL => Call,
+          Types::CANCEL => Cancel,
+          Types::RESULT => Result,
+          Types::REGISTER => Register,
+          Types::REGISTERED => Registered,
+          Types::UNREGISTER => Unregister,
+          Types::UNREGISTERED => Unregistered,
+          Types::INVOCATION => Invocation,
+          Types::INTERRUPT => Interrupt,
+          Types::YIELD => Yield,
+      }
+
+      # @param params [Array]
+      def self.parse(params)
+        klass = TYPE_LOOKUP[params[0]]
+        klass ? klass.parse(params.clone) : nil
       end
 
     end

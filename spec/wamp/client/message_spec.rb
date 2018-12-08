@@ -26,7 +26,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [1,'string',{ test: 1 }]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.realm).to eq('string')
       expect(object.details).to eq({ test: 1 })
@@ -68,7 +68,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [2,123,{ test: 1 }]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.session).to eq(123)
       expect(object.details).to eq({ test: 1 })
@@ -110,7 +110,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [3,{ test: 1 },'string']
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.details).to eq({ test: 1 })
       expect(object.reason).to eq('string')
@@ -152,7 +152,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [6,{ test: 1 },'string']
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.details).to eq({ test: 1 })
       expect(object.reason).to eq('string')
@@ -198,7 +198,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [8,123,123,{ test: 1 },'string']
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.request_type).to eq(123)
       expect(object.request_request).to eq(123)
@@ -342,7 +342,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [16,123,{ test: 1 },'string']
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.request).to eq(123)
       expect(object.options).to eq({ test: 1 })
@@ -479,7 +479,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [17,123,123]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.publish_request).to eq(123)
       expect(object.publication).to eq(123)
@@ -523,7 +523,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [32,123,{ test: 1 },'string']
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.request).to eq(123)
       expect(object.options).to eq({ test: 1 })
@@ -567,7 +567,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [33,123,123]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.subscribe_request).to eq(123)
       expect(object.subscription).to eq(123)
@@ -609,7 +609,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [34,123,123]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.request).to eq(123)
       expect(object.subscribed_subscription).to eq(123)
@@ -649,7 +649,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [35,123]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.unsubscribe_request).to eq(123)
       expect(object.is_a?(Wamp::Client::Message::Unsubscribed)).to eq(true)
@@ -691,7 +691,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [36,123,123,{ test: 1 }]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.subscribed_subscription).to eq(123)
       expect(object.published_publication).to eq(123)
@@ -830,7 +830,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [48,123,{ test: 1 },'string']
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.request).to eq(123)
       expect(object.options).to eq({ test: 1 })
@@ -967,7 +967,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [50,123,{ test: 1 }]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.call_request).to eq(123)
       expect(object.details).to eq({ test: 1 })
@@ -1101,7 +1101,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [64,123,{ test: 1 },'string']
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.request).to eq(123)
       expect(object.options).to eq({ test: 1 })
@@ -1145,7 +1145,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [65,123,123]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.register_request).to eq(123)
       expect(object.registration).to eq(123)
@@ -1187,7 +1187,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [66,123,123]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.request).to eq(123)
       expect(object.registered_registration).to eq(123)
@@ -1227,7 +1227,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [67,123]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.unregister_request).to eq(123)
       expect(object.is_a?(Wamp::Client::Message::Unregistered)).to eq(true)
@@ -1269,7 +1269,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [68,123,123,{ test: 1 }]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.request).to eq(123)
       expect(object.registered_registration).to eq(123)
@@ -1406,7 +1406,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [70,123,{ test: 1 }]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.invocation_request).to eq(123)
       expect(object.options).to eq({ test: 1 })
@@ -1538,7 +1538,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [4,'string',{ test: 1 }]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.authmethod).to eq('string')
       expect(object.extra).to eq({ test: 1 })
@@ -1580,7 +1580,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [5,'string',{ test: 1 }]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.signature).to eq('string')
       expect(object.extra).to eq({ test: 1 })
@@ -1622,7 +1622,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [49,123,{ test: 1 }]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.call_request).to eq(123)
       expect(object.options).to eq({ test: 1 })
@@ -1664,7 +1664,7 @@ describe Wamp::Client::Message do
 
     it 'globally parses the message and creates an object' do
       params = [69,123,{ test: 1 }]
-      object = Wamp::Client::Message::Base.parse(params)
+      object = Wamp::Client::Message.parse(params)
 
       expect(object.invocation_request).to eq(123)
       expect(object.options).to eq({ test: 1 })

@@ -65,22 +65,13 @@ message_type_lookup = {
 
 message_type_define = ''
 message_lookup_define = ''
-count = 0
 message_type_lookup.each do |name, value|
 
   # Generate the defines
   message_type_define += "        #{name} = #{value}\n"
 
   # Generate the lookup
-  if count == 0
-    message_lookup_define += '          if'
-  else
-    message_lookup_define += '          elsif'
-  end
-  message_lookup_define += " params[0] == Types::#{name}\n"
-  message_lookup_define += "            object = Wamp::Client::Message::#{name.downcase.capitalize}.parse(params)\n"
-
-  count += 1
+  message_lookup_define += "          Types::#{name} => #{name.downcase.capitalize},\n"
 end
 
 source_file_header = "require 'wamp/client/check'
@@ -103,15 +94,21 @@ module Wamp
 
         # @param params [Array]
         def self.parse(params)
-          object = nil
-#{message_lookup_define}          end
-
-          object
+          nil
         end
       end
 "
 
 source_file_footer = "
+      TYPE_LOOKUP = {
+#{message_lookup_define}      }
+
+      # @param params [Array]
+      def self.parse(params)
+        klass = TYPE_LOOKUP[params[0]]
+        klass ? klass.parse(params.clone) : nil
+      end
+
     end
   end
 end
@@ -501,7 +498,7 @@ messages.each do |message|
   # Generate Global Parser Test
   test_file += "\n    it 'globally parses the message and creates an object' do\n"
   test_file += "      params = [#{message_type_lookup[message[:name].upcase]},#{value_array.join(',')}]\n"
-  test_file += "      object = Wamp::Client::Message::Base.parse(params)\n\n"
+  test_file += "      object = Wamp::Client::Message.parse(params)\n\n"
   params.each do |param|
     if param[:required]
       test_file += "      expect(object.#{param[:name]}).to eq(#{value_from_type(param[:type])})\n"

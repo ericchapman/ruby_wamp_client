@@ -10,6 +10,10 @@ Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integ
 
 ## Revision History
 
+ - v0.1.3:
+   - Improved logging
+   - Minor code cleanup
+   - Added including backtrace when unknown error occurs in "call"
  - v0.1.2:
    - Updated logging to use the standard Ruby logger
  - v0.1.1:
@@ -76,7 +80,6 @@ require 'wamp/client'
 options = {
     uri: 'ws://127.0.0.1:8080/ws',
     realm: 'realm1',
-    verbose: true
 }
 connection = Wamp::Client::Connection.new(options)
 

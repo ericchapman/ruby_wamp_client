@@ -15,3 +15,4 @@ mkmf.log
 .idea
 *.tmp
 .DS_Store
+.idea/

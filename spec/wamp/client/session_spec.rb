@@ -689,6 +689,7 @@ describe Wamp::Client::Session do
       expect(transport.messages[0][3]).to eq({})
       expect(transport.messages[0][4]).to eq('wamp.error.runtime')
       expect(transport.messages[0][5]).to eq(['error'])
+      expect(transport.messages[0][6][:backtrace]).not_to be_nil
 
     end
 

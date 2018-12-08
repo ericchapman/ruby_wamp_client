@@ -71,6 +71,27 @@ module Wamp
         }
     }
 
+    HANDLER_LOOKUP = {
+        # Error Responses
+        Message::Types::SUBSCRIBE => -> s,m { s._process_SUBSCRIBE_error(m) },
+        Message::Types::UNSUBSCRIBE => -> s,m { s._process_UNSUBSCRIBE_error(m) },
+        Message::Types::PUBLISH => -> s,m { s._process_PUBLISH_error(m) },
+        Message::Types::REGISTER => -> s,m { s._process_REGISTER_error(m) },
+        Message::Types::UNREGISTER => -> s,m { s._process_UNREGISTER_error(m) },
+        Message::Types::CALL => -> s,m { s._process_CALL_error(m) },
+
+        # Result Responses
+        Message::Types::SUBSCRIBED => -> s,m { s._process_SUBSCRIBED(m) },
+        Message::Types::UNSUBSCRIBED => -> s,m { s._process_UNSUBSCRIBED(m) },
+        Message::Types::PUBLISHED => -> s,m { s._process_PUBLISHED(m) },
+        Message::Types::EVENT => -> s,m { s._process_EVENT(m) },
+        Message::Types::REGISTERED => -> s,m { s._process_REGISTERED(m) },
+        Message::Types::UNREGISTERED => -> s,m { s._process_UNREGISTERED(m) },
+        Message::Types::INVOCATION => -> s,m { s._process_INVOCATION(m) },
+        Message::Types::INTERRUPT => -> s,m { s._process_INTERRUPT(m) },
+        Message::Types::RESULT => -> s,m { s._process_RESULT(m) },
+    }
+
     class CallResult
       attr_accessor :args, :kwargs
 
@@ -293,7 +314,10 @@ module Wamp
       # Sends a message
       # @param msg [Wamp::Client::Message::Base]
       def _send_message(msg)
+        # Log the message
         logger.debug("#{self.class.name} TX: #{msg.to_s}")
+
+        # Send it to the transport
         self.transport.send_message(msg.payload)
       end
 
@@ -301,20 +325,33 @@ module Wamp
       # @param msg [Array]
       def _receive_message(msg)
 
-        message = Wamp::Client::Message::Base.parse(msg)
+        # Print the raw message
+        logger.debug("#{self.class.name} RX(raw): #{msg.to_s}")
 
+        # Parse the WAMP message
+        message = Wamp::Client::Message.parse(msg)
+
+        # Print the parsed WAMP message
         logger.debug("#{self.class.name} RX: #{message.to_s}")
-        logger.debug("#{self.class.name} RX(non-samp): #{msg.to_s}")
 
         # WAMP Session is not open
         if self.id.nil?
 
           # Parse the welcome message
           if message.is_a? Wamp::Client::Message::Welcome
+            # Get the session ID
             self.id = message.session
+
+            # Log joining the session
+            logger.info("#{self.class.name} joined session with realm '#{message.details[:realm]}'")
+
+            # Call the callback if it is set
             @on_join.call(message.details) unless @on_join.nil?
           elsif message.is_a? Wamp::Client::Message::Challenge
+            # Log challenge received
+            logger.debug("#{self.class.name} auth challenge '#{message.authmethod}', extra: #{message.extra}")
 
+            # Call the callback if set
             if @on_challenge
               signature, extra = @on_challenge.call(message.authmethod, message.extra)
             else
@@ -329,6 +366,10 @@ module Wamp
             self._send_message(authenticate)
 
           elsif message.is_a? Wamp::Client::Message::Abort
+            # Log leaving the session
+            logger.info("#{self.class.name} left session '#{message.reason}'")
+
+            # Call the callback if it is set
             @on_leave.call(message.reason, message.details) unless @on_leave.nil?
           end
 
@@ -352,49 +393,15 @@ module Wamp
 
           else
 
-            # Process Errors
-            if message.is_a? Wamp::Client::Message::Error
-              if message.request_type == Wamp::Client::Message::Types::SUBSCRIBE
-                self._process_SUBSCRIBE_error(message)
-              elsif message.request_type == Wamp::Client::Message::Types::UNSUBSCRIBE
-                self._process_UNSUBSCRIBE_error(message)
-              elsif message.request_type == Wamp::Client::Message::Types::PUBLISH
-                self._process_PUBLISH_error(message)
-              elsif message.request_type == Wamp::Client::Message::Types::REGISTER
-                self._process_REGISTER_error(message)
-              elsif message.request_type == Wamp::Client::Message::Types::UNREGISTER
-                self._process_UNREGISTER_error(message)
-              elsif message.request_type == Wamp::Client::Message::Types::CALL
-                self._process_CALL_error(message)
-              else
-                # TODO: Some Error??  Not Implemented yet
-              end
+            # Else this is a normal message.  Lookup the handler and call it
+            type = message.is_a?(Message::Error) ? message.request_type : message.class.type
+            handler = HANDLER_LOOKUP[type]
 
-              # Process Messages
+            if handler != nil
+              handler.call(self, message)
             else
-              if message.is_a? Wamp::Client::Message::Subscribed
-                self._process_SUBSCRIBED(message)
-              elsif message.is_a? Wamp::Client::Message::Unsubscribed
-                self._process_UNSUBSCRIBED(message)
-              elsif message.is_a? Wamp::Client::Message::Published
-                self._process_PUBLISHED(message)
-              elsif message.is_a? Wamp::Client::Message::Event
-                self._process_EVENT(message)
-              elsif message.is_a? Wamp::Client::Message::Registered
-                self._process_REGISTERED(message)
-              elsif message.is_a? Wamp::Client::Message::Unregistered
-                self._process_UNREGISTERED(message)
-              elsif message.is_a? Wamp::Client::Message::Invocation
-                self._process_INVOCATION(message)
-              elsif message.is_a? Wamp::Client::Message::Interrupt
-                self._process_INTERRUPT(message)
-              elsif message.is_a? Wamp::Client::Message::Result
-                self._process_RESULT(message)
-              else
-                # TODO: Some Error??  Not Implemented yet
-              end
+              logger.error("#{self.class.name} unknown message type '#{type}'")
             end
-
           end
         end
 
@@ -697,7 +704,8 @@ module Wamp
         if error.nil?
           error = CallError.new('wamp.error.runtime')
         elsif not error.is_a?(CallError)
-          error = CallError.new('wamp.error.runtime', [error.to_s])
+          backtrace = error.is_a?(Exception) ? error.backtrace : nil
+          error = CallError.new('wamp.error.runtime', [error.to_s], { backtrace: backtrace })
         end
 
         error_msg = Wamp::Client::Message::Error.new(Wamp::Client::Message::Types::INVOCATION, request, {}, error.error, error.args, error.kwargs)
