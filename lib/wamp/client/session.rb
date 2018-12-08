@@ -161,7 +161,7 @@ module Wamp
     end
 
     class Session
-      include Wamp::Client::Check
+      include Check
 
       # on_join callback is called when the session joins the router.  It has the following parameters
       # @param details [Hash] Object containing information about the joined session
@@ -208,7 +208,7 @@ module Wamp
       attr_accessor :_goodbye_sent, :_requests, :_subscriptions, :_registrations, :_defers
 
       # Constructor
-      # @param transport [Wamp::Client::Transport::Base] The transport that the session will use
+      # @param transport [Transport::Base] The transport that the session will use
       # @param options [Hash] Hash containing different session options
       # @option options [String] :authid The authentication ID
       # @option options [Array] :authmethods Different auth methods that this client supports
@@ -268,12 +268,12 @@ module Wamp
 
         details = {}
         details[:roles] = WAMP_FEATURES
-        details[:agent] = "Ruby-Wamp::Client-#{Wamp::Client::VERSION}"
+        details[:agent] = "Ruby-Wamp::Client-#{VERSION}"
         details[:authid] = self.options[:authid] if self.options[:authid]
         details[:authmethods] = self.options[:authmethods] if self.options[:authmethods]
 
         # Send Hello message
-        hello = Wamp::Client::Message::Hello.new(realm, details)
+        hello = Message::Hello.new(realm, details)
         self._send_message(hello)
       end
 
@@ -291,7 +291,7 @@ module Wamp
         details[:message] = message
 
         # Send Goodbye message
-        goodbye = Wamp::Client::Message::Goodbye.new(details, reason)
+        goodbye = Message::Goodbye.new(details, reason)
         self._send_message(goodbye)
         self._goodbye_sent = true
       end
@@ -302,7 +302,7 @@ module Wamp
       end
 
       # Converts and error message to a hash
-      # @param msg [Wamp::Client::Message::Error]
+      # @param msg [Message::Error]
       def _error_to_hash(msg)
         {
             error: msg.error,
@@ -312,7 +312,7 @@ module Wamp
       end
 
       # Sends a message
-      # @param msg [Wamp::Client::Message::Base]
+      # @param msg [Message::Base]
       def _send_message(msg)
         # Log the message
         logger.debug("#{self.class.name} TX: #{msg.to_s}")
@@ -329,7 +329,7 @@ module Wamp
         logger.debug("#{self.class.name} RX(raw): #{msg.to_s}")
 
         # Parse the WAMP message
-        message = Wamp::Client::Message.parse(msg)
+        message = Message.parse(msg)
 
         # Print the parsed WAMP message
         logger.debug("#{self.class.name} RX: #{message.to_s}")
@@ -338,7 +338,7 @@ module Wamp
         if self.id.nil?
 
           # Parse the welcome message
-          if message.is_a? Wamp::Client::Message::Welcome
+          if message.is_a? Message::Welcome
             # Get the session ID
             self.id = message.session
 
@@ -347,7 +347,7 @@ module Wamp
 
             # Call the callback if it is set
             @on_join.call(message.details) unless @on_join.nil?
-          elsif message.is_a? Wamp::Client::Message::Challenge
+          elsif message.is_a? Message::Challenge
             # Log challenge received
             logger.debug("#{self.class.name} auth challenge '#{message.authmethod}', extra: #{message.extra}")
 
@@ -362,10 +362,10 @@ module Wamp
             signature ||= ''
             extra ||= {}
 
-            authenticate = Wamp::Client::Message::Authenticate.new(signature, extra)
+            authenticate = Message::Authenticate.new(signature, extra)
             self._send_message(authenticate)
 
-          elsif message.is_a? Wamp::Client::Message::Abort
+          elsif message.is_a? Message::Abort
             # Log leaving the session
             logger.info("#{self.class.name} left session '#{message.reason}'")
 
@@ -377,11 +377,11 @@ module Wamp
         else
 
           # If goodbye, close the session
-          if message.is_a? Wamp::Client::Message::Goodbye
+          if message.is_a? Message::Goodbye
 
             # If we didn't send the goodbye, respond
             unless self._goodbye_sent
-              goodbye = Wamp::Client::Message::Goodbye.new({}, 'wamp.error.goodbye_and_out')
+              goodbye = Message::Goodbye.new({}, 'wamp.error.goodbye_and_out')
               self._send_message(goodbye)
             end
 
@@ -428,12 +428,12 @@ module Wamp
         self._requests[:subscribe][request] = {t: topic, h: handler, o: options, c: callback}
 
         # Send the message
-        subscribe = Wamp::Client::Message::Subscribe.new(request, options, topic)
+        subscribe = Message::Subscribe.new(request, options, topic)
         self._send_message(subscribe)
       end
 
       # Processes the response to a subscribe request
-      # @param msg [Wamp::Client::Message::Subscribed] The response from the subscribe
+      # @param msg [Message::Subscribed] The response from the subscribe
       def _process_SUBSCRIBED(msg)
 
         # Remove the pending subscription, add it to the registered ones, and inform the caller
@@ -454,7 +454,7 @@ module Wamp
       end
 
       # Processes an error from a request
-      # @param msg [Wamp::Client::Message::Error] The response from the subscribe
+      # @param msg [Message::Error] The response from the subscribe
       def _process_SUBSCRIBE_error(msg)
 
         # Remove the pending subscription and inform the caller of the failure
@@ -473,7 +473,7 @@ module Wamp
       end
 
       # Processes and event from the broker
-      # @param msg [Wamp::Client::Message::Event] An event that was published
+      # @param msg [Message::Event] An event that was published
       def _process_EVENT(msg)
 
         args = msg.publish_arguments || []
@@ -510,12 +510,12 @@ module Wamp
         self._requests[:unsubscribe][request] = { s: subscription, c: callback }
 
         # Send the message
-        unsubscribe = Wamp::Client::Message::Unsubscribe.new(request, subscription.id)
+        unsubscribe = Message::Unsubscribe.new(request, subscription.id)
         self._send_message(unsubscribe)
       end
 
       # Processes the response to a unsubscribe request
-      # @param msg [Wamp::Client::Message::Unsubscribed] The response from the unsubscribe
+      # @param msg [Message::Unsubscribed] The response from the unsubscribe
       def _process_UNSUBSCRIBED(msg)
 
         # Remove the pending unsubscription, add it to the registered ones, and inform the caller
@@ -537,7 +537,7 @@ module Wamp
 
 
       # Processes an error from a request
-      # @param msg [Wamp::Client::Message::Error] The response from the subscribe
+      # @param msg [Message::Error] The response from the subscribe
       def _process_UNSUBSCRIBE_error(msg)
 
         # Remove the pending subscription and inform the caller of the failure
@@ -580,12 +580,12 @@ module Wamp
         self._requests[:publish][request] = {t: topic, a: args, k: kwargs, o: options, c: callback} if options[:acknowledge]
 
         # Send the message
-        publish = Wamp::Client::Message::Publish.new(request, options, topic, args, kwargs)
+        publish = Message::Publish.new(request, options, topic, args, kwargs)
         self._send_message(publish)
       end
 
       # Processes the response to a publish request
-      # @param msg [Wamp::Client::Message::Published] The response from the subscribe
+      # @param msg [Message::Published] The response from the subscribe
       def _process_PUBLISHED(msg)
 
         # Remove the pending publish and alert the callback
@@ -605,7 +605,7 @@ module Wamp
       end
 
       # Processes an error from a publish request
-      # @param msg [Wamp::Client::Message::Error] The response from the subscribe
+      # @param msg [Message::Error] The response from the subscribe
       def _process_PUBLISH_error(msg)
 
         # Remove the pending publish and inform the caller of the failure
@@ -648,12 +648,12 @@ module Wamp
         self._requests[:register][request] = {p: procedure, h: handler, i: interrupt, o: options, c: callback}
 
         # Send the message
-        register = Wamp::Client::Message::Register.new(request, options, procedure)
+        register = Message::Register.new(request, options, procedure)
         self._send_message(register)
       end
 
       # Processes the response to a register request
-      # @param msg [Wamp::Client::Message::Registered] The response from the subscribe
+      # @param msg [Message::Registered] The response from the subscribe
       def _process_REGISTERED(msg)
 
         # Remove the pending subscription, add it to the registered ones, and inform the caller
@@ -674,7 +674,7 @@ module Wamp
       end
 
       # Processes an error from a request
-      # @param msg [Wamp::Client::Message::Error] The response from the register
+      # @param msg [Message::Error] The response from the register
       def _process_REGISTER_error(msg)
 
         # Remove the pending registration and inform the caller of the failure
@@ -708,7 +708,7 @@ module Wamp
           error = CallError.new('wamp.error.runtime', [error.to_s], { backtrace: backtrace })
         end
 
-        error_msg = Wamp::Client::Message::Error.new(Wamp::Client::Message::Types::INVOCATION, request, {}, error.error, error.args, error.kwargs)
+        error_msg = Message::Error.new(Message::Types::INVOCATION, request, {}, error.error, error.args, error.kwargs)
         self._send_message(error_msg)
       end
 
@@ -722,6 +722,7 @@ module Wamp
           return
         end
 
+        # Wrap the result accordingly
         if result.nil?
           result = CallResult.new
         elsif result.is_a?(CallError)
@@ -730,17 +731,23 @@ module Wamp
           result = CallResult.new([result])
         end
 
+        # Send either the error or the response
         if result.is_a?(CallError)
           self._send_INVOCATION_error(request, result)
         else
-          yield_msg = Wamp::Client::Message::Yield.new(request, options, result.args, result.kwargs)
+          yield_msg = Message::Yield.new(request, options, result.args, result.kwargs)
           self._send_message(yield_msg)
+        end
+
+        # Remove the defer if this was not a progress update
+        if check_defer and options[:progress] == nil
+          self._defers.delete(request)
         end
       end
 
 
       # Processes and event from the broker
-      # @param msg [Wamp::Client::Message::Invocation] An procedure that was called
+      # @param msg [Message::Invocation] An procedure that was called
       def _process_INVOCATION(msg)
 
         request = msg.request
@@ -759,7 +766,7 @@ module Wamp
               value = h.call(args, kwargs, details)
 
               # If a defer was returned, handle accordingly
-              if value.is_a? Wamp::Client::Defer::CallDefer
+              if value.is_a? Defer::CallDefer
                 value.request = request
                 value.registration = msg.registered_registration
 
@@ -769,23 +776,22 @@ module Wamp
                 # On complete, send the result
                 value.on_complete do |defer, result|
                   self.yield(defer.request, result, {}, true)
-                  self._defers.delete(defer.request)
                 end
 
                 # On error, send the error
                 value.on_error do |defer, error|
-                  self._send_INVOCATION_error(defer.request, error, true)
-                  self._defers.delete(defer.request)
+                  error = CallError.new("wamp.error.runtime", [error]) if error.is_a?(String)
+                  self.yield(defer.request, error, {}, true)
                 end
 
                 # For progressive, return the progress
-                if value.is_a? Wamp::Client::Defer::ProgressiveCallDefer
+                if value.is_a? Defer::ProgressiveCallDefer
                   value.on_progress do |defer, result|
                     self.yield(defer.request, result, {progress: true}, true)
                   end
                 end
 
-                # Else it was a normal response
+              # Else it was a normal response
               else
                 self.yield(request, value)
               end
@@ -799,7 +805,7 @@ module Wamp
       end
 
       # Processes the interrupt
-      # @param msg [Wamp::Client::Message::Interrupt] An interrupt to a procedure
+      # @param msg [Message::Interrupt] An interrupt to a procedure
       def _process_INTERRUPT(msg)
 
         request = msg.invocation_request
@@ -851,12 +857,12 @@ module Wamp
         self._requests[:unregister][request] = { r: registration, c: callback }
 
         # Send the message
-        unregister = Wamp::Client::Message::Unregister.new(request, registration.id)
+        unregister = Message::Unregister.new(request, registration.id)
         self._send_message(unregister)
       end
 
       # Processes the response to a unregister request
-      # @param msg [Wamp::Client::Message::Unregistered] The response from the unsubscribe
+      # @param msg [Message::Unregistered] The response from the unsubscribe
       def _process_UNREGISTERED(msg)
 
         # Remove the pending unregistration, add it to the registered ones, and inform the caller
@@ -877,7 +883,7 @@ module Wamp
       end
 
       # Processes an error from a request
-      # @param msg [Wamp::Client::Message::Error] The response from the subscribe
+      # @param msg [Message::Error] The response from the subscribe
       def _process_UNREGISTER_error(msg)
 
         # Remove the pending subscription and inform the caller of the failure
@@ -921,7 +927,7 @@ module Wamp
         self._requests[:call][request] = {p: procedure, a: args, k: kwargs, o: options, c: callback}
 
         # Send the message
-        msg = Wamp::Client::Message::Call.new(request, options, procedure, args, kwargs)
+        msg = Message::Call.new(request, options, procedure, args, kwargs)
         self._send_message(msg)
 
         call = Call.new(self, request)
@@ -940,7 +946,7 @@ module Wamp
       end
 
       # Processes the response to a publish request
-      # @param msg [Wamp::Client::Message::Result] The response from the call
+      # @param msg [Message::Result] The response from the call
       def _process_RESULT(msg)
 
         details = msg.details || {}
@@ -962,7 +968,7 @@ module Wamp
       end
 
       # Processes an error from a call request
-      # @param msg [Wamp::Client::Message::Error] The response from the call
+      # @param msg [Message::Error] The response from the call
       def _process_CALL_error(msg)
 
         # Remove the pending publish and inform the caller of the failure
@@ -995,7 +1001,7 @@ module Wamp
         self.class.check_nil('call', call, false)
 
         # Send the message
-        cancel = Wamp::Client::Message::Cancel.new(call.id, { mode: mode })
+        cancel = Message::Cancel.new(call.id, { mode: mode })
         self._send_message(cancel)
       end
 

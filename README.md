@@ -10,6 +10,8 @@ Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integ
 
 ## Revision History
 
+ - v0.1.4:
+   - Wrapped defer logic inside of yield method for cleanliness
  - v0.1.3:
    - Improved logging
    - Minor code cleanup
