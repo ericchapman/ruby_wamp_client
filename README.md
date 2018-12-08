@@ -10,6 +10,12 @@ Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integ
 
 ## Revision History
 
+ - v0.2.0:
+   - Breaking changes to the API including
+     - Moving CallResult, CallError, CallDefer, and ProgressiveCallDefer to common module called "Response"
+     - Results to calls return a Hash object instead of a CallResult object
+     - Catches "StandardError" instead of "Exception"
+   - Lots of code cleanup and combining handling of methods
  - v0.1.4:
    - Wrapped defer logic inside of yield method for cleanliness
  - v0.1.3:
@@ -97,7 +103,7 @@ connection.on(:join) do |session, details|
     # Call It
     session.call('com.example.procedure', [3,4]) do |result, error, details|
       if result
-        puts result.args[0] # => 7
+        puts result[:args][0] # => 7
       end
     end
 
@@ -516,8 +522,8 @@ To call, do the following
 ```ruby
 session.call('com.example.procedure', [15], {param: value}, {}) do |result, error, details|
   # TODO: Do something
-  args = result.args
-  kwargs = result.kwargs
+  args = result[:args]
+  kwargs = result[:kwargs]
 end
 ```
 
@@ -532,11 +538,11 @@ Errors can either be raised OR returned as shown below
 
 ```ruby
 handler = lambda do |args, kwargs, details|
-  raise 'error'
+  raise RuntimeError,'error'
   # OR
-  raise Wamp::Client::CallError.new('wamp.error', ['some error'], {details: true})
+  raise Wamp::Client::Response::CallError.new('wamp.error', ['some error'], {details: true})
   # OR
-  Wamp::Client::CallError.new('wamp.error', ['some error'], {details: true})
+  Wamp::Client::Response::CallError.new('wamp.error', ['some error'], {details: true})
 end
 session.register('com.example.procedure', handler)
 ```
@@ -549,7 +555,7 @@ caller.  This is shown below
 
 ```ruby
 def add(args, kwargs, details)
-  defer = Wamp::Client::Defer::CallDefer.new
+  defer = Wamp::Client::Response::CallDefer.new
   EM.add_timer(2) {  # Something Async
     defer.succeed(args[0]+args[1])
   }
@@ -562,9 +568,9 @@ Errors are returned as follows
 
 ```ruby
 def add(args, kwargs, details)
-  defer = Wamp::Client::Defer::CallDefer.new
+  defer = Wamp::Client::Response::CallDefer.new
   EM.add_timer(2) {  # Something Async
-    defer.fail(Wamp::Client::CallError.new('test.error'))
+    defer.fail(Wamp::Client::Response::CallError.new('test.error'))
   }
   defer
 end
@@ -579,7 +585,7 @@ Progressive calls are ones that return the result in pieces rather than all at o
 ```ruby
 results = []
 session.call('com.example.procedure', [], {}, {receive_progress: true}) do |result, error, details|
-  results = results + result.args
+  results = results + result[:args]
   unless details[:progress]
     puts results # => [1,2,3,4,5,6]
   end
@@ -590,15 +596,15 @@ end
 
 ```ruby
 def add(args, kwargs, details)
-  defer = Wamp::Client::Defer::ProgressiveCallDefer.new
+  defer = Wamp::Client::Response::ProgressiveCallDefer.new
   EM.add_timer(2) {  # Something Async
-    defer.progress(Wamp::Client::CallResult.new([1,2,3]))
+    defer.progress(Wamp::Client::Response::CallResult.new([1,2,3]))
   }
   EM.add_timer(4) {  # Something Async
-    defer.progress(Wamp::Client::CallResult.new([4,5,6]))
+    defer.progress(Wamp::Client::Response::CallResult.new([4,5,6]))
   }
   EM.add_timer(6) {  # Something Async
-    defer.succeed(Wamp::Client::CallResult.new)
+    defer.succeed(Wamp::Client::Response::CallResult.new)
   }
   defer
 end
@@ -613,8 +619,8 @@ A cancelled call will tell a callee who implements a progressive call to cancel 
 ```ruby
 call = session.call('com.example.procedure', [15], {param: value}, {}) do |result, error, details|
   # TODO: Do something
-  args = result.args
-  kwargs = result.kwargs
+  args = result[:args]
+  kwargs = result[:kwargs]
 end
 
 # At some later time...
@@ -641,20 +647,20 @@ def interrupt_handler(request, mode)
 end
 
 def add(args, kwargs, details)
-  defer = Wamp::Client::Defer::ProgressiveCallDefer.new
+  defer = Wamp::Client::Response::ProgressiveCallDefer.new
   EM.add_timer(2) {  # Something Async
     if @interrupts[defer.request].nil?
-      defer.progress(Wamp::Client::CallResult.new([1,2,3]))
+      defer.progress(Wamp::Client::Response::CallResult.new([1,2,3]))
     end
   }
   EM.add_timer(4) {  # Something Async
     if @interrupts[defer.request].nil?
-      defer.progress(Wamp::Client::CallResult.new([4,5,6]))
+      defer.progress(Wamp::Client::Response::CallResult.new([4,5,6]))
     end
   }
   EM.add_timer(6) {  # Something Async
     if @interrupts[defer.request].nil?
-      defer.succeed(Wamp::Client::CallResult.new)
+      defer.succeed(Wamp::Client::Response::CallResult.new)
     end
     @interrupts.delete(request)
   }

@@ -31,7 +31,7 @@ require 'wamp/client/serializer'
 require 'wamp/client/connection'
 require 'wamp/client/session'
 require 'wamp/client/auth'
-require 'wamp/client/defer'
+require 'wamp/client/response'
 require 'logger'
 
 module Wamp

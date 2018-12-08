@@ -29,6 +29,7 @@ require 'wamp/client/transport/base'
 require 'wamp/client/message'
 require 'wamp/client/check'
 require 'wamp/client/version'
+require 'wamp/client/response'
 
 module Wamp
   module Client
@@ -71,45 +72,26 @@ module Wamp
         }
     }
 
-    HANDLER_LOOKUP = {
+    METHOD_LOOKUP = {
         # Error Responses
-        Message::Types::SUBSCRIBE => -> s,m { s._process_SUBSCRIBE_error(m) },
-        Message::Types::UNSUBSCRIBE => -> s,m { s._process_UNSUBSCRIBE_error(m) },
-        Message::Types::PUBLISH => -> s,m { s._process_PUBLISH_error(m) },
-        Message::Types::REGISTER => -> s,m { s._process_REGISTER_error(m) },
-        Message::Types::UNREGISTER => -> s,m { s._process_UNREGISTER_error(m) },
-        Message::Types::CALL => -> s,m { s._process_CALL_error(m) },
+        Message::Types::SUBSCRIBE => :_process_SUBSCRIBE_error,
+        Message::Types::UNSUBSCRIBE => :_process_UNSUBSCRIBE_error,
+        Message::Types::PUBLISH => :_process_PUBLISH_error,
+        Message::Types::REGISTER => :_process_REGISTER_error,
+        Message::Types::UNREGISTER => :_process_UNREGISTER_error,
+        Message::Types::CALL => :_process_CALL_error,
 
         # Result Responses
-        Message::Types::SUBSCRIBED => -> s,m { s._process_SUBSCRIBED(m) },
-        Message::Types::UNSUBSCRIBED => -> s,m { s._process_UNSUBSCRIBED(m) },
-        Message::Types::PUBLISHED => -> s,m { s._process_PUBLISHED(m) },
-        Message::Types::EVENT => -> s,m { s._process_EVENT(m) },
-        Message::Types::REGISTERED => -> s,m { s._process_REGISTERED(m) },
-        Message::Types::UNREGISTERED => -> s,m { s._process_UNREGISTERED(m) },
-        Message::Types::INVOCATION => -> s,m { s._process_INVOCATION(m) },
-        Message::Types::INTERRUPT => -> s,m { s._process_INTERRUPT(m) },
-        Message::Types::RESULT => -> s,m { s._process_RESULT(m) },
+        Message::Types::SUBSCRIBED => :_process_SUBSCRIBED,
+        Message::Types::UNSUBSCRIBED => :_process_UNSUBSCRIBED,
+        Message::Types::PUBLISHED => :_process_PUBLISHED,
+        Message::Types::EVENT => :_process_EVENT,
+        Message::Types::REGISTERED => :_process_REGISTERED,
+        Message::Types::UNREGISTERED => :_process_UNREGISTERED,
+        Message::Types::INVOCATION => :_process_INVOCATION,
+        Message::Types::INTERRUPT => :_process_INTERRUPT,
+        Message::Types::RESULT => :_process_RESULT,
     }
-
-    class CallResult
-      attr_accessor :args, :kwargs
-
-      def initialize(args=nil, kwargs=nil)
-        self.args = args || []
-        self.kwargs = kwargs || {}
-      end
-    end
-
-    class CallError < Exception
-      attr_accessor :error, :args, :kwargs
-
-      def initialize(error, args=nil, kwargs=nil)
-        self.error = error
-        self.args = args || []
-        self.kwargs = kwargs || {}
-      end
-    end
 
     class Subscription
       attr_accessor :topic, :handler, :options, :session, :id
@@ -301,16 +283,6 @@ module Wamp
         rand(0..9007199254740992)
       end
 
-      # Converts and error message to a hash
-      # @param msg [Message::Error]
-      def _error_to_hash(msg)
-        {
-            error: msg.error,
-            args: msg.arguments,
-            kwargs: msg.argumentskw
-        }
-      end
-
       # Sends a message
       # @param msg [Message::Base]
       def _send_message(msg)
@@ -395,10 +367,10 @@ module Wamp
 
             # Else this is a normal message.  Lookup the handler and call it
             type = message.is_a?(Message::Error) ? message.request_type : message.class.type
-            handler = HANDLER_LOOKUP[type]
+            method = METHOD_LOOKUP[type]
 
-            if handler != nil
-              handler.call(self, message)
+            if method != nil
+              self.send(method, message)
             else
               logger.error("#{self.class.name} unknown message type '#{type}'")
             end
@@ -467,7 +439,8 @@ module Wamp
           details[:session] = self
 
           c = s[:c]
-          c.call(nil, self._error_to_hash(msg), details) if c
+          error = Response::CallError.from_message(msg)
+          c.call(nil, error.to_hash, details) if c
         end
 
       end
@@ -550,7 +523,8 @@ module Wamp
           details[:session] = self
 
           c = s[:c]
-          c.call(nil, self._error_to_hash(msg), details) if c
+          error = Response::CallError.from_message(msg)
+          c.call(nil, error.to_hash, details) if c
         end
 
       end
@@ -618,7 +592,8 @@ module Wamp
           details[:session] = self
 
           c = s[:c]
-          c.call(nil, self._error_to_hash(msg), details) if c
+          error = Response::CallError.from_message(msg)
+          c.call(nil, error.to_hash, details) if c
         end
 
       end
@@ -687,7 +662,8 @@ module Wamp
           details[:session] = self
 
           c = r[:c]
-          c.call(nil, self._error_to_hash(msg), details) if c
+          error = Response::CallError.from_message(msg)
+          c.call(nil, error.to_hash, details) if c
         end
 
       end
@@ -696,19 +672,14 @@ module Wamp
       # @param request[Integer] - The request ID
       # @param error
       def _send_INVOCATION_error(request, error, check_defer=false)
-        # Prevent responses for defers that have already completed or had an error
-        if check_defer and not self._defers[request]
-          return
-        end
+        # Make sure the response is an error
+        error = Response::CallError.ensure(error)
 
-        if error.nil?
-          error = CallError.new('wamp.error.runtime')
-        elsif not error.is_a?(CallError)
-          backtrace = error.is_a?(Exception) ? error.backtrace : nil
-          error = CallError.new('wamp.error.runtime', [error.to_s], { backtrace: backtrace })
-        end
+        # Create error message
+        error_msg = Message::Error.new(
+            Message::Types::INVOCATION, request, {}, error.error, error.args, error.kwargs)
 
-        error_msg = Message::Error.new(Message::Types::INVOCATION, request, {}, error.error, error.args, error.kwargs)
+        # Send it
         self._send_message(error_msg)
       end
 
@@ -723,16 +694,10 @@ module Wamp
         end
 
         # Wrap the result accordingly
-        if result.nil?
-          result = CallResult.new
-        elsif result.is_a?(CallError)
-          # Do nothing
-        elsif not result.is_a?(CallResult)
-          result = CallResult.new([result])
-        end
+        result = Response::CallResult.ensure(result, allow_error: true)
 
         # Send either the error or the response
-        if result.is_a?(CallError)
+        if result.is_a?(Response::CallError)
           self._send_INVOCATION_error(request, result)
         else
           yield_msg = Message::Yield.new(request, options, result.args, result.kwargs)
@@ -762,44 +727,43 @@ module Wamp
         if r
           h = r.handler
           if h
-            begin
-              value = h.call(args, kwargs, details)
-
-              # If a defer was returned, handle accordingly
-              if value.is_a? Defer::CallDefer
-                value.request = request
-                value.registration = msg.registered_registration
-
-                # Store the defer
-                self._defers[request] = value
-
-                # On complete, send the result
-                value.on_complete do |defer, result|
-                  self.yield(defer.request, result, {}, true)
-                end
-
-                # On error, send the error
-                value.on_error do |defer, error|
-                  error = CallError.new("wamp.error.runtime", [error]) if error.is_a?(String)
-                  self.yield(defer.request, error, {}, true)
-                end
-
-                # For progressive, return the progress
-                if value.is_a? Defer::ProgressiveCallDefer
-                  value.on_progress do |defer, result|
-                    self.yield(defer.request, result, {progress: true}, true)
-                  end
-                end
-
-              # Else it was a normal response
-              else
-                self.yield(request, value)
-              end
-
-            rescue Exception => error
-              self._send_INVOCATION_error(request, error)
+            # Use the invoke wrapper to process the result
+            value = Response.invoke_handler do
+              h.call(args, kwargs, details)
             end
 
+            # If a defer was returned, handle accordingly
+            if value.is_a? Response::CallDefer
+              value.request = request
+              value.registration = msg.registered_registration
+
+              # Store the defer
+              self._defers[request] = value
+
+              # On complete, send the result
+              value.on_complete do |defer, result|
+                result = Response::CallResult.ensure(result)
+                self.yield(defer.request, result, {}, true)
+              end
+
+              # On error, send the error
+              value.on_error do |defer, error|
+                error = Response::CallError.ensure(error)
+                self.yield(defer.request, error, {}, true)
+              end
+
+              # For progressive, return the progress
+              if value.is_a? Response::ProgressiveCallDefer
+                value.on_progress do |defer, result|
+                  result = Response::CallResult.ensure(result)
+                  self.yield(defer.request, result, {progress: true}, true)
+                end
+              end
+
+              # Else it was a normal response
+            else
+              self.yield(request, value)
+            end
           end
         end
       end
@@ -819,14 +783,13 @@ module Wamp
             i = r.i_handler
             error = nil
             if i
-              begin
-                error = i.call(request, mode)
-              rescue Exception => e
-                error = e
+              error = Response.invoke_handler error: true do
+                i.call(request, mode)
               end
-            end
 
-            error ||= 'interrupt'
+              # Add a default reason if none was supplied
+              error.args << "interrupt" if error.args.count == 0
+            end
 
             # Send the error back to the client
             self._send_INVOCATION_error(request, error, true)
@@ -896,7 +859,8 @@ module Wamp
           details[:session] = self
 
           c = r[:c]
-          c.call(nil, self._error_to_hash(msg), details) if c
+          error = Response::CallError.from_message(msg)
+          c.call(nil, error.to_hash, details) if c
         end
 
       end
@@ -962,7 +926,8 @@ module Wamp
           details[:session] = self
 
           c = call[:c]
-          c.call(CallResult.new(msg.yield_arguments, msg.yield_argumentskw), nil, details) if c
+          result = Response::CallResult.from_yield_message(msg)
+          c.call(result.to_hash, nil, details) if c
         end
 
       end
@@ -981,7 +946,8 @@ module Wamp
           details[:session] = self
 
           c = call[:c]
-          c.call(nil, self._error_to_hash(msg), details) if c
+          error = Response::CallError.from_message(msg)
+          c.call(nil, error.to_hash, details) if c
         end
 
       end

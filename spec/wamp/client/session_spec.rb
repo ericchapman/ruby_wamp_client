@@ -601,7 +601,7 @@ describe Wamp::Client::Session do
 
       # Register Call Error Response
       handler = lambda do |args, kwargs, details|
-        raise Wamp::Client::CallError.new('test.error', ['error'])
+        raise Wamp::Client::Response::CallError.new('test.error', ['error'])
       end
       session.register('test.procedure.call.error', handler, {test: 1})
       request_id = session._requests[:register].keys.first
@@ -659,7 +659,7 @@ describe Wamp::Client::Session do
 
     it 'result response' do
 
-      @response = Wamp::Client::CallResult.new(['test'], {test:1})
+      @response = Wamp::Client::Response::CallResult.new(['test'], {test:1})
 
       # Generate server event
       invocation = Wamp::Client::Message::Invocation.new(7890, 3456, {test:1}, [2], {param: 'value'})
@@ -712,7 +712,7 @@ describe Wamp::Client::Session do
 
     it 'return error response' do
 
-      @response = Wamp::Client::CallError.new('wamp.error.runtime', ['error'], {error: true})
+      @response = Wamp::Client::Response::CallError.new('wamp.error.runtime', ['error'], {error: true})
 
       # Generate server event
       invocation = Wamp::Client::Message::Invocation.new(7890, 3456, {test:1}, [2], {param: 'value'})
@@ -732,9 +732,9 @@ describe Wamp::Client::Session do
 
     it 'defer normal response' do
 
-      @response = Wamp::Client::CallResult.new(['test'], {test:1})
+      @response = Wamp::Client::Response::CallResult.new(['test'], {test:1})
 
-      @defer = Wamp::Client::Defer::CallDefer.new
+      @defer = Wamp::Client::Response::CallDefer.new
 
       # Generate server event
       invocation = Wamp::Client::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
@@ -756,7 +756,7 @@ describe Wamp::Client::Session do
 
     it 'defer error normal response' do
 
-      @defer = Wamp::Client::Defer::CallDefer.new
+      @defer = Wamp::Client::Response::CallDefer.new
 
       # Generate server event
       invocation = Wamp::Client::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
@@ -779,9 +779,9 @@ describe Wamp::Client::Session do
 
     it 'defer error object response' do
 
-      @response = Wamp::Client::CallError.new('wamp.error.runtime', ['error'], {error: true})
+      @response = Wamp::Client::Response::CallError.new('wamp.error.runtime', ['error'], {error: true})
 
-      @defer = Wamp::Client::Defer::CallDefer.new
+      @defer = Wamp::Client::Response::CallDefer.new
 
       # Generate server event
       invocation = Wamp::Client::Message::Invocation.new(7890, 4567, {test:1}, [2], {param: 'value'})
@@ -808,7 +808,7 @@ describe Wamp::Client::Session do
 
         @response = nil
 
-        @defer = Wamp::Client::Defer::CallDefer.new
+        @defer = Wamp::Client::Response::CallDefer.new
 
         # Generate server event
         invocation = Wamp::Client::Message::Invocation.new(7890, 7896, {test:1}, [2], {param: 'value'})
@@ -843,7 +843,7 @@ describe Wamp::Client::Session do
 
         @response = 'custom'
 
-        @defer = Wamp::Client::Defer::CallDefer.new
+        @defer = Wamp::Client::Response::CallDefer.new
 
         # Generate server event
         invocation = Wamp::Client::Message::Invocation.new(7890, 7896, {test:1}, [2], {param: 'value'})
@@ -1031,8 +1031,8 @@ describe Wamp::Client::Session do
         count += 1
 
         expect(result).not_to be_nil
-        expect(result.args).to eq(['test'])
-        expect(result.kwargs).to eq({test:true})
+        expect(result[:args]).to eq(['test'])
+        expect(result[:kwargs]).to eq({test:true})
         expect(error).to be_nil
         expect(details).to eq({procedure: 'test.procedure', type: 'call', session: session})
       end
@@ -1122,7 +1122,7 @@ describe Wamp::Client::Session do
       after { clock.reset }
 
       it 'does not cancel a call if no timeout specified' do
-        @defer = Wamp::Client::Defer::ProgressiveCallDefer.new
+        @defer = Wamp::Client::Response::ProgressiveCallDefer.new
 
         count = 0
         session.call('test.procedure', nil, nil) do |result, error, details|
@@ -1134,7 +1134,7 @@ describe Wamp::Client::Session do
       end
 
       it 'does cancel a call if a timeout is specified' do
-        @defer = Wamp::Client::Defer::ProgressiveCallDefer.new
+        @defer = Wamp::Client::Response::ProgressiveCallDefer.new
 
         count = 0
         call = session.call('test.procedure', nil, nil, {timeout: 1000}) do |result, error, details|
@@ -1166,7 +1166,7 @@ describe Wamp::Client::Session do
 
       results = []
       session.call('test.procedure', [], {}, {}) do |result, error, details|
-        results = results + result.args
+        results = results + result[:args]
       end
 
       @request_id = session._requests[:call].keys.first
@@ -1190,7 +1190,7 @@ describe Wamp::Client::Session do
 
       results = []
       session.call('test.procedure', [], {}, {receive_progress: true}) do |result, error, details|
-        results = results + result.args
+        results = results + result[:args]
       end
 
       @request_id = session._requests[:call].keys.first
@@ -1223,7 +1223,7 @@ describe Wamp::Client::Session do
     it 'callee result support' do
 
       # Defer Register
-      @defer = Wamp::Client::Defer::ProgressiveCallDefer.new
+      @defer = Wamp::Client::Response::ProgressiveCallDefer.new
       defer_handler = lambda do |args, kwargs, details|
         @defer
       end
@@ -1242,11 +1242,11 @@ describe Wamp::Client::Session do
       expect(transport.messages.count).to eq(0)
       expect(session._defers.count).to eq(1)
 
-      @defer.progress(Wamp::Client::CallResult.new(['test1']))
+      @defer.progress(Wamp::Client::Response::CallResult.new(['test1']))
       expect(session._defers.count).to eq(1)
-      @defer.progress(Wamp::Client::CallResult.new(['test2']))
+      @defer.progress(Wamp::Client::Response::CallResult.new(['test2']))
       expect(session._defers.count).to eq(1)
-      @defer.succeed(Wamp::Client::CallResult.new(['test3']))
+      @defer.succeed(Wamp::Client::Response::CallResult.new(['test3']))
       expect(session._defers.count).to eq(0)
 
       expect(transport.messages.count).to eq(3)
@@ -1273,7 +1273,7 @@ describe Wamp::Client::Session do
     it 'callee error support' do
 
       # Defer Register
-      @defer = Wamp::Client::Defer::ProgressiveCallDefer.new
+      @defer = Wamp::Client::Response::ProgressiveCallDefer.new
       defer_handler = lambda do |args, kwargs, details|
         @defer
       end
@@ -1292,11 +1292,11 @@ describe Wamp::Client::Session do
       expect(transport.messages.count).to eq(0)
       expect(session._defers.count).to eq(1)
 
-      @defer.progress(Wamp::Client::CallResult.new(['test1']))
+      @defer.progress(Wamp::Client::Response::CallResult.new(['test1']))
       expect(session._defers.count).to eq(1)
-      @defer.progress(Wamp::Client::CallResult.new(['test2']))
+      @defer.progress(Wamp::Client::Response::CallResult.new(['test2']))
       expect(session._defers.count).to eq(1)
-      @defer.fail(Wamp::Client::CallError.new('test.error'))
+      @defer.fail(Wamp::Client::Response::CallError.new('test.error'))
       expect(session._defers.count).to eq(0)
 
       expect(transport.messages.count).to eq(3)
@@ -1323,7 +1323,7 @@ describe Wamp::Client::Session do
     it 'callee error support' do
 
       # Defer Register
-      @defer = Wamp::Client::Defer::ProgressiveCallDefer.new
+      @defer = Wamp::Client::Response::ProgressiveCallDefer.new
       defer_handler = lambda do |args, kwargs, details|
         @defer
       end
@@ -1342,11 +1342,11 @@ describe Wamp::Client::Session do
       expect(transport.messages.count).to eq(0)
       expect(session._defers.count).to eq(1)
 
-      @defer.progress(Wamp::Client::CallResult.new(['test1']))
+      @defer.progress(Wamp::Client::Response::CallResult.new(['test1']))
       expect(session._defers.count).to eq(1)
-      @defer.progress(Wamp::Client::CallResult.new(['test2']))
+      @defer.progress(Wamp::Client::Response::CallResult.new(['test2']))
       expect(session._defers.count).to eq(1)
-      @defer.fail(Wamp::Client::CallError.new('test.error'))
+      @defer.fail(Wamp::Client::Response::CallError.new('test.error'))
       expect(session._defers.count).to eq(0)
 
       expect(transport.messages.count).to eq(3)
