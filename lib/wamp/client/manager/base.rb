@@ -27,6 +27,11 @@ module Wamp
         def send_message(message)
           self.send_message_callback.call(message) if self.send_message_callback
         end
+
+        # Triggers an event
+        def trigger(event, *args)
+          self.session.trigger event, *args
+        end
       end
     end
   end

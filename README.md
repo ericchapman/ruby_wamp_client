@@ -6,7 +6,10 @@
 
 Client for talking to a WAMP Router.  This is defined [here](https://tools.ietf.org/html/draft-oberstet-hybi-tavendo-wamp-02)
 
-Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integrate this GEM in to RAILS.
+Note: [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) has been deprecated in favor of
+[wamp-worker](https://github.com/ericchapman/ruby_wamp_worker) which allows this library to be run
+in a RAILS worker.  It will also allow integration with Sidekiq to support allowing handlers to
+execute in the background.
 
 ## Revision History
 
@@ -15,6 +18,8 @@ Please use [wamp_rails](https://github.com/ericchapman/ruby_wamp_rails) to integ
      - Moving CallResult, CallError, CallDefer, and ProgressiveCallDefer to common module called "Response"
      - Results to calls return a Hash object instead of a CallResult object
      - Catches "StandardError" instead of "Exception"
+     - Session object has been split into *request* and *manager* objects
+     - Callback subscriptions are now all "on(event)"
    - Lots of code cleanup and combining handling of methods
  - v0.1.4:
    - Wrapped defer logic inside of yield method for cleanliness

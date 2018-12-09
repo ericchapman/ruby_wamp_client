@@ -1,81 +1,15 @@
-=begin
-
-Copyright (c) 2018 Eric Chapman
-
-MIT License
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-=end
-
 require 'wamp/client/serializer'
+require 'wamp/client/event'
 
 module Wamp
   module Client
     module Transport
       class Base
-
-        # Callback when the socket is opened
-        @on_open
-        def on_open(&on_open)
-          @on_open = on_open
-        end
-
-        # Callback when the socket is closed.  Parameters are
-        # @param reason [String] String telling the reason it was closed
-        @on_close
-        def on_close(&on_close)
-          @on_close = on_close
-        end
-
-        # Callback when a message is received.  Parameters are
-        # @param msg [Array] The parsed message that was received
-        @on_message
-        def on_message(&on_message)
-          @on_message = on_message
-        end
-
-        # Callback when there is an error.  Parameters are
-        # @param msg [String] The message from the error
-        @on_error
-        def on_error(&on_error)
-          @on_error = on_error
-        end
-
-        # Simple setter for callbacks
-        def on(event, &callback)
-          case event
-          when :open
-            self.on_open(&callback)
-          when :close
-            self.on_close(&callback)
-          when :message
-            self.on_message(&callback)
-          when :error
-            self.on_error(&callback)
-          else
-            raise RuntimeError, "Unknown on(event) '#{event}'"
-          end
-        end
+        include Event
 
         attr_accessor :uri, :proxy, :headers, :protocol, :serializer, :connected
+
+        create_event [:open, :close, :message, :error]
 
         # Constructor for the transport
         # @param options [Hash] The connection options.  the different options are as follows
@@ -96,13 +30,6 @@ module Wamp
 
           # Add the wamp.2.json protocol header
           self.headers['Sec-WebSocket-Protocol'] = self.protocol
-
-          # Initialize callbacks
-          @on_open = nil
-          @on_close = nil
-          @on_message = nil
-          @on_error = nil
-
         end
 
         # Connects to the WAMP Server using the transport

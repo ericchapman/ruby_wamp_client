@@ -9,13 +9,17 @@ module Wamp
       # @param [Bool] - "true" is we want an error out of this
       # @return [CallResult, CallError, CallDefer] - A response object
       def self.invoke_handler(error: false, &callback)
+        logger = Wamp::Client.logger
+
         # Invoke the request
         begin
           result = callback.call
         rescue CallError => e
           result = e
         rescue StandardError => e
-          result = CallError.new(DEFAULT_ERROR, [e.to_s], { backtrace: e.backtrace })
+          logger.error("Wamp::Client::Response - #{e.message}")
+          e.backtrace.each { |line| logger.error("   #{line}") }
+          result = CallError.new(DEFAULT_ERROR, [e.message], { backtrace: e.backtrace })
         end
 
         # Ensure an expected class is returned

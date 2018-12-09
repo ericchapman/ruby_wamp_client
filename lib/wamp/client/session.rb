@@ -1,43 +1,10 @@
-=begin
-
-Copyright (c) 2018 Eric Chapman
-
-MIT License
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-=end
-
 require 'wamp/client/transport/base'
 require 'wamp/client/message'
 require 'wamp/client/check'
 require 'wamp/client/version'
-require 'wamp/client/request/subscribe'
-require 'wamp/client/request/unsubscribe'
-require 'wamp/client/request/register'
-require 'wamp/client/request/unregister'
-require 'wamp/client/request/publish'
-require 'wamp/client/request/call'
-require 'wamp/client/manager/subscription'
-require 'wamp/client/manager/registration'
-require 'wamp/client/manager/establish'
+require 'wamp/client/event'
+require 'wamp/client/request/require'
+require 'wamp/client/manager/require'
 
 module Wamp
   module Client
@@ -74,9 +41,11 @@ module Wamp
 
     class Session
       include Check
+      include Event
 
-      attr_accessor :id, :realm, :transport, :options
-      attr_accessor :request, :callback, :subscription, :registration, :establish
+      attr_accessor :transport, :options, :request, :callback, :subscription, :registration, :establish
+
+      create_event [:join, :challenge, :leave]
 
       # Constructor
       # @param transport [Transport::Base] The transport that the session will use
@@ -86,8 +55,6 @@ module Wamp
       def initialize(transport, options={})
 
         # Parameters
-        self.id = nil
-        self.realm = nil
         self.options = options || {}
 
         # Create the send message lambda for the request objects
@@ -113,38 +80,37 @@ module Wamp
 
         # Setup Transport
         self.transport = transport
-        self.transport.on_message do |msg|
+        self.transport.on :message do |msg|
           receive_message(msg)
         end
 
       end
 
-      # Simple setter for callbacks
+      # Returns 'true' if the session is open
       #
-      # join: |details|
-      # challenge: |authmethod, extra|
-      # leave: |reason, details|
-      #
-      def on(event, &callback)
-        unless [:join, :challenge, :leave].include? event
-          raise RuntimeError, "Unknown on(event) '#{event}'"
-        end
-
-        self.callback[event] = callback
+      def is_open?
+        self.establish.is_open?
       end
 
-      # Returns 'true' if the session is open
-      def is_open?
-        !self.id.nil?
+      # Returns the ID of the session
+      #
+      def id
+        self.establish.id
+      end
+
+      # Returns the realm of the session
+      #
+      def realm
+        self.establish.realm
       end
 
       # Joins the WAMP Router
+      #
       # @param realm [String] The name of the realm
       def join(realm)
-        if is_open?
-          raise RuntimeError, "Session must be closed to call 'join'"
-        end
+        check_closed
 
+        # Check params
         self.class.check_uri('realm', realm)
 
         # Attempt to join
@@ -152,12 +118,12 @@ module Wamp
       end
 
       # Leaves the WAMP Router
+      #
       # @param reason [String] URI signalling the reason for leaving
       def leave(reason='wamp.close.normal', message='user initiated')
-        unless is_open?
-          raise RuntimeError, "Session must be opened to call 'leave'"
-        end
+        check_open
 
+        # Check params
         self.class.check_uri('reason', reason, true)
         self.class.check_string('message', message, true)
 
@@ -167,100 +133,105 @@ module Wamp
 
 
       # Subscribes to a topic
+      #
       # @param topic [String] The topic to subscribe to
       # @param handler [lambda] The handler(args, kwargs, details) when an event is received
       # @param options [Hash] The options for the subscription
       # @param callback [block] The callback(subscription, error) called to signal if the subscription was a success or not
       def subscribe(topic, handler, options={}, &callback)
-        unless is_open?
-          raise RuntimeError, "Session must be open to call 'subscribe'"
-        end
+        check_open
 
+        # Check params
         self.class.check_uri('topic', topic)
         self.class.check_dict('options', options)
         self.class.check_nil('handler', handler, false)
 
         # Make the request
-        self.request[:subscribe].request(topic, handler, options, &callback)
+        make_request(:subscribe, :request, topic, handler, options, &callback)
       end
 
       # Unsubscribes from a subscription
+      #
       # @param subscription [Subscription] The subscription object from when the subscription was created
       # @param callback [block] The callback(subscription, error, details) called to signal if the subscription was a success or not
       def unsubscribe(subscription, &callback)
-        unless is_open?
-          raise RuntimeError, "Session must be open to call 'unsubscribe'"
-        end
+        check_open
 
+        # Check params
         self.class.check_nil('subscription', subscription, false)
 
         # Make the request
-        self.request[:unsubscribe].request(subscription, &callback)
+        make_request(:unsubscribe, :request, subscription, &callback)
       end
 
       # Publishes and event to a topic
+      #
       # @param topic [String] The topic to publish the event to
       # @param args [Array] The arguments
       # @param kwargs [Hash] The keyword arguments
       # @param options [Hash] The options for the publish
       # @param callback [block] The callback(publish, error, details) called to signal if the publish was a success or not
       def publish(topic, args=nil, kwargs=nil, options={}, &callback)
-        unless is_open?
-          raise RuntimeError, "Session must be open to call 'publish'"
-        end
+        check_open
 
+        # Check params
         self.class.check_uri('topic', topic)
         self.class.check_dict('options', options)
         self.class.check_list('args', args, true)
         self.class.check_dict('kwargs', kwargs, true)
 
         # Make the request
-        self.request[:publish].request(topic, args, kwargs, options, &callback)
+        make_request(:publish, :request, topic, args, kwargs, options, &callback)
       end
 
       # Register to a procedure
+      #
       # @param procedure [String] The procedure to register for
       # @param handler [lambda] The handler(args, kwargs, details) when an invocation is received
       # @param options [Hash, nil] The options for the registration
       # @param interrupt [lambda] The handler(request, mode) when an interrupt is received
       # @param callback [block] The callback(registration, error, details) called to signal if the registration was a success or not
       def register(procedure, handler, options=nil, interrupt=nil, &callback)
-        unless is_open?
-          raise RuntimeError, "Session must be open to call 'register'"
-        end
+        check_open
 
         options ||= {}
 
+        # Check params
         self.class.check_uri('procedure', procedure)
         self.class.check_nil('handler', handler, false)
 
         # Make the request
-        self.request[:register].request(procedure, handler, options, interrupt, &callback)
+        make_request(:register, :request, procedure, handler, options, interrupt, &callback)
       end
 
       # Sends a result for the invocation
+      #
       # @param request [Integer] - The id of the request
       # @param result [CallError, CallResult, anything] - If it is a CallError, the error will be returned
       # @param options [Hash] - The options to be sent with the yield
       def yield(request, result, options={}, check_defer=false)
+        check_open
+
+        # Call the registration yield method
         self.registration.yield(request, result, options, check_defer)
       end
 
       # Unregisters from a procedure
+      #
       # @param registration [Registration] The registration object from when the registration was created
       # @param callback [block] The callback(registration, error, details) called to signal if the unregistration was a success or not
       def unregister(registration, &callback)
-        unless is_open?
-          raise RuntimeError, "Session must be open to call 'unregister'"
-        end
+        check_open
 
+        # Check params
         self.class.check_nil('registration', registration, false)
 
         # Make the request
-        self.request[:unregister].request(registration, &callback)
+        make_request(:unregister, :request, registration, &callback)
       end
 
       # Publishes and event to a topic
+      #
       # @param procedure [String] The procedure to invoke
       # @param args [Array] The arguments
       # @param kwargs [Hash] The keyword arguments
@@ -268,17 +239,16 @@ module Wamp
       # @param callback [block] The callback(result, error, details) called to signal if the call was a success or not
       # @return [Call] An object representing the call
       def call(procedure, args=nil, kwargs=nil, options={}, &callback)
-        unless is_open?
-          raise RuntimeError, "Session must be open to call 'call'"
-        end
+        check_open
 
+        # Check params
         self.class.check_uri('procedure', procedure)
         self.class.check_dict('options', options)
         self.class.check_list('args', args, true)
         self.class.check_dict('kwargs', kwargs, true)
 
         # Make the request
-        request_id = self.request[:call].request(procedure, args, kwargs, options, &callback)
+        request_id = make_request(:call, :request, procedure, args, kwargs, options, &callback)
 
         # Create the call object
         call = Request::CallObject.new(self, request_id)
@@ -295,30 +265,43 @@ module Wamp
       end
 
       # Cancels a call
+      #
       # @param call [Call] - The call object
       # @param mode [String] - The mode of the skip.  Options are 'skip', 'kill', 'killnowait'
       def cancel(call, mode='skip')
-        unless is_open?
-          raise RuntimeError, "Session must be open to call 'cancel'"
-        end
+        check_open
 
+        # Check params
         self.class.check_nil('call', call, false)
 
         # Cancel the request
-        self.request[:call].cancel(call.id, mode)
+        make_request(:call, :cancel, call.id, mode)
       end
 
       private
 
-      # Returns the logger
-      #
+      def check_closed
+        if is_open?
+          raise RuntimeError, "session must be closed to call this method"
+        end
+      end
+
+      def check_open
+        unless is_open?
+          raise RuntimeError, "session must be open to call this method"
+        end
+      end
+
+      def make_request(name, method, *args, &callback)
+        self.request[name].send(method, *args, &callback)
+      end
+
       def logger
         Wamp::Client.logger
       end
 
-      # Sends a message
-      # @param msg [Message::Base]
       def send_message(msg)
+
         # Log the message
         logger.debug("#{self.class.name} TX: #{msg.to_s}")
 
@@ -326,8 +309,6 @@ module Wamp
         self.transport.send_message(msg.payload)
       end
 
-      # Processes received messages
-      # @param msg [Array]
       def receive_message(msg)
 
         # Print the raw message
@@ -350,6 +331,7 @@ module Wamp
 
         # Execute the handler
         if handler != nil
+          # Catch any standard exception and log it
           begin
             handler.call(self, message)
           rescue StandardError => e

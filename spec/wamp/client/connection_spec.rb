@@ -6,13 +6,13 @@ describe Wamp::Client::Connection do
   before { clock.stub }
   after { clock.reset }
 
-  before(:each) { SpecHelper::TestTransport.stop_event_machine }
+  before(:each) { TestTransport.stop_event_machine }
 
   let(:options) {
     {
         uri: 'wss://example.com',
         realm: 'realm1',
-        transport: SpecHelper::TestTransport,
+        transport: TestTransport,
     }
   }
   let(:connection) { described_class.new(options) }
@@ -37,11 +37,11 @@ describe Wamp::Client::Connection do
   end
 
   def check_em_on
-    expect(SpecHelper::TestTransport.event_machine_on?).to eq(true)
+    expect(TestTransport.event_machine_on?).to eq(true)
   end
 
   def check_em_off
-    expect(SpecHelper::TestTransport.event_machine_on?).to eq(false)
+    expect(TestTransport.event_machine_on?).to eq(false)
   end
 
   describe 'transport' do

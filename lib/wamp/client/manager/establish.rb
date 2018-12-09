@@ -5,7 +5,7 @@ module Wamp
     module Manager
 
       class Establish < Base
-        attr_accessor :goodbye_sent
+        attr_accessor :goodbye_sent, :id, :realm
 
         WAMP_FEATURES = {
             caller: {
@@ -51,6 +51,16 @@ module Wamp
         def initialize(session, send_message)
           super session, send_message
           self.goodbye_sent = false
+
+          # Initialize the session
+          self.id = nil
+          self.realm = nil
+        end
+
+        # Returns true if the session is open
+        #
+        def is_open?
+          self.id != nil
         end
 
         # Will attempt to join a router
@@ -58,7 +68,7 @@ module Wamp
         def join(realm)
 
           # Set the realm
-          self.session.realm = realm
+          self.realm = realm
 
           # Create the details
           details = {}
@@ -101,24 +111,25 @@ module Wamp
           end
 
           # Close out session
-          self.session.id = nil
-          self.session.realm = nil
+          self.id = nil
+          self.realm = nil
           self.goodbye_sent = false
 
-          self.session.callback[:leave].call(message.reason, message.details) if self.session.callback[:leave]
+          # Trigger leave event
+          trigger :leave, message.reason, message.details
         end
 
         # Handles the welcome message
         #
         def welcome(message)
           # Get the session ID
-          self.session.id = message.session
+          self.id = message.session
 
           # Log the message
           logger.info("#{self.session.class.name} joined session with realm '#{message.details[:realm]}'")
 
-          # Perform the callback if it exists
-          self.session.callback[:join].call(message.details) if self.session.callback[:join]
+          # Trigger join event
+          trigger :join, message.details
         end
 
         # Handles a challenge message
@@ -128,13 +139,9 @@ module Wamp
           logger.debug("#{self.session.class.name} auth challenge '#{message.authmethod}', extra: #{message.extra}")
 
           # Call the callback if set
-          if self.session.callback[:challenge]
-            signature, extra = self.session.callback[:challenge].call(message.authmethod, message.extra)
-          else
-            signature = nil
-            extra = nil
-          end
+          signature, extra = trigger :challenge, message.authmethod, message.extra
 
+          # Set with initial values
           signature ||= ''
           extra ||= {}
 
@@ -151,9 +158,10 @@ module Wamp
           # Log leaving the session
           logger.info("#{self.session.class.name} left session '#{message.reason}'")
 
-          # Call the callback if it is set
-          self.session.callback[:leave].call(message.reason, message.details) if self.session.callback[:leave]
+          # Trigger the leave event
+          trigger :leave, message.reason, message.details
         end
+
       end
 
     end

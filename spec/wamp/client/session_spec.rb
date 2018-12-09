@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Wamp::Client::Session do
-  let (:transport) { SpecHelper::TestTransport.new({}) }
+  let (:transport) { TestTransport.new({}) }
   let (:session) { Wamp::Client::Session.new(transport) }
 
   describe 'establishment' do
@@ -48,7 +48,7 @@ describe Wamp::Client::Session do
       expect(@leave_count).to eq(0)
 
       # Check Exception
-      expect { session.join('test') }.to raise_exception("Session must be closed to call 'join'")
+      expect { session.join('test') }.to raise_error(RuntimeError)
 
     end
 
@@ -71,7 +71,7 @@ describe Wamp::Client::Session do
     it 'performs a connect then client initiated goodbye' do
 
       # Check Exception
-      expect { session.leave('felt.like.it') }.to raise_exception("Session must be opened to call 'leave'")
+      expect { session.leave('felt.like.it') }.to raise_error(RuntimeError)
 
       session.join('test')
       welcome = Wamp::Client::Message::Welcome.new(1234, {})
@@ -130,7 +130,7 @@ describe Wamp::Client::Session do
 
     before(:each) do
       # Check Exception
-      expect { session.subscribe('test.topic', nil, {test: 1}) }.to raise_exception("Session must be open to call 'subscribe'")
+      expect { session.subscribe('test.topic', nil, {test: 1}) }.to raise_error(RuntimeError)
 
       session.join('test')
       welcome = Wamp::Client::Message::Welcome.new(1234, {})
@@ -252,7 +252,7 @@ describe Wamp::Client::Session do
 
     before(:each) do
       # Check Exception
-      expect { session.unsubscribe(nil) }.to raise_exception("Session must be open to call 'unsubscribe'")
+      expect { session.unsubscribe(nil) }.to raise_error(RuntimeError)
 
       session.join('test')
       welcome = Wamp::Client::Message::Welcome.new(1234, {})
@@ -372,7 +372,7 @@ describe Wamp::Client::Session do
 
     before(:each) do
       # Check Exception
-      expect { session.publish('test.topic') }.to raise_exception("Session must be open to call 'publish'")
+      expect { session.publish('test.topic') }.to raise_error(RuntimeError)
 
       session.join('test')
       welcome = Wamp::Client::Message::Welcome.new(1234, {})
@@ -471,7 +471,7 @@ describe Wamp::Client::Session do
 
     before(:each) do
       # Check Exception
-      expect { session.register('test.procedure', nil, {test: 1}) }.to raise_exception("Session must be open to call 'register'")
+      expect { session.register('test.procedure', nil, {test: 1}) }.to raise_error(RuntimeError)
 
       session.join('test')
       welcome = Wamp::Client::Message::Welcome.new(1234, {})
@@ -565,7 +565,7 @@ describe Wamp::Client::Session do
       @request = nil
 
       # Check Exception
-      expect { session.register('test.procedure', nil, {test: 1}) }.to raise_exception("Session must be open to call 'register'")
+      expect { session.register('test.procedure', nil, {test: 1}) }.to raise_error(RuntimeError)
 
       session.join('test')
       welcome = Wamp::Client::Message::Welcome.new(1234, {})
@@ -877,7 +877,7 @@ describe Wamp::Client::Session do
 
     before(:each) do
       # Check Exception
-      expect { session.unregister(nil) }.to raise_exception("Session must be open to call 'unregister'")
+      expect { session.unregister(nil) }.to raise_error(RuntimeError)
 
       session.join('test')
       welcome = Wamp::Client::Message::Welcome.new(1234, {})
@@ -997,7 +997,7 @@ describe Wamp::Client::Session do
 
     before(:each) do
       # Check Exception
-      expect { session.call('test.procedure') }.to raise_exception("Session must be open to call 'call'")
+      expect { session.call('test.procedure') }.to raise_error(RuntimeError)
 
       session.join('test')
       welcome = Wamp::Client::Message::Welcome.new(1234, {})

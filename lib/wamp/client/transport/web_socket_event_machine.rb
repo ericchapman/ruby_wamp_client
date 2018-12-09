@@ -1,30 +1,3 @@
-=begin
-
-Copyright (c) 2018 Eric Chapman
-
-MIT License
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-=end
-
 require_relative 'event_machine_base'
 
 # This implementation uses the 'websocket-eventmachine-client' Gem.
@@ -56,16 +29,16 @@ module Wamp
 
           self.socket.onopen do
             self.connected = true
-            @on_open.call if @on_open
+            trigger :open
           end
 
           self.socket.onmessage do |msg, type|
-            @on_message.call(self.serializer.deserialize(msg)) if @on_message
+            trigger :message, self.serializer.deserialize(msg)
           end
 
           self.socket.onclose do |code, reason|
             self.connected = false
-            @on_close.call(reason) if @on_close
+            trigger :close, reason
           end
         end
 
