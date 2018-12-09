@@ -30,6 +30,11 @@ require 'wamp/client/message'
 require 'wamp/client/check'
 require 'wamp/client/version'
 require 'wamp/client/response'
+require 'wamp/client/request/subscribe'
+require 'wamp/client/request/unsubscribe'
+require 'wamp/client/request/register'
+require 'wamp/client/request/unregister'
+require 'wamp/client/request/publish'
 
 module Wamp
   module Client
@@ -74,23 +79,23 @@ module Wamp
 
     METHOD_LOOKUP = {
         # Error Responses
-        Message::Types::SUBSCRIBE => :_process_SUBSCRIBE_error,
-        Message::Types::UNSUBSCRIBE => :_process_UNSUBSCRIBE_error,
-        Message::Types::PUBLISH => :_process_PUBLISH_error,
-        Message::Types::REGISTER => :_process_REGISTER_error,
-        Message::Types::UNREGISTER => :_process_UNREGISTER_error,
-        Message::Types::CALL => :_process_CALL_error,
+        Message::Types::SUBSCRIBE => -> s, m { s.request_subscribe.error(m) },
+        Message::Types::UNSUBSCRIBE => -> s, m { s.request_unsubscribe.error(m) },
+        Message::Types::PUBLISH => -> s, m { s.request_publish.error(m) },
+        Message::Types::REGISTER => -> s, m { s.request_register.error(m) },
+        Message::Types::UNREGISTER => -> s, m { s.request_unregister.error(m) },
+        Message::Types::CALL => -> s, m { s._process_CALL_error(m) },
 
         # Result Responses
-        Message::Types::SUBSCRIBED => :_process_SUBSCRIBED,
-        Message::Types::UNSUBSCRIBED => :_process_UNSUBSCRIBED,
-        Message::Types::PUBLISHED => :_process_PUBLISHED,
-        Message::Types::EVENT => :_process_EVENT,
-        Message::Types::REGISTERED => :_process_REGISTERED,
-        Message::Types::UNREGISTERED => :_process_UNREGISTERED,
-        Message::Types::INVOCATION => :_process_INVOCATION,
-        Message::Types::INTERRUPT => :_process_INTERRUPT,
-        Message::Types::RESULT => :_process_RESULT,
+        Message::Types::SUBSCRIBED => -> s, m { s.request_subscribe.success(m) },
+        Message::Types::UNSUBSCRIBED => -> s, m { s.request_unsubscribe.success(m) },
+        Message::Types::PUBLISHED => -> s, m { s.request_publish.success(m) },
+        Message::Types::EVENT => -> s, m { s._process_EVENT(m) },
+        Message::Types::REGISTERED => -> s, m { s.request_register.success(m) },
+        Message::Types::UNREGISTERED => -> s, m { s.request_unregister.success(m) },
+        Message::Types::INVOCATION => -> s, m { s._process_INVOCATION(m) },
+        Message::Types::INTERRUPT => -> s, m { s._process_INTERRUPT(m) },
+        Message::Types::RESULT => -> s, m { s._process_RESULT(m) },
     }
 
     class Subscription
@@ -189,6 +194,9 @@ module Wamp
       # Private attributes
       attr_accessor :_goodbye_sent, :_requests, :_subscriptions, :_registrations, :_defers
 
+      attr_reader :request_subscribe, :request_unsubscribe,
+                  :request_register, :request_unregister,
+                  :request_publish
       # Constructor
       # @param transport [Transport::Base] The transport that the session will use
       # @param options [Hash] Hash containing different session options
@@ -204,11 +212,7 @@ module Wamp
         # Outstanding Requests
         self._requests = {
             publish: {},
-            subscribe: {},
-            unsubscribe: {},
             call: {},
-            register: {},
-            unregister: {}
         }
 
         # Init Subs and Regs in place
@@ -229,6 +233,29 @@ module Wamp
         @on_join = nil
         @on_leave = nil
         @on_challenge = nil
+
+        send_message_lambda = -> message {
+          self._send_message(message)
+        }
+
+        @request_subscribe = Request::Subscribe.new(self, send_message_lambda) do |s_id, s|
+          self._subscriptions[s_id] = s
+        end
+
+        @request_unsubscribe = Request::Unsubscribe.new(self, send_message_lambda) do |s_id|
+          self._subscriptions.delete(s_id)
+        end
+
+        @request_register = Request::Register.new(self, send_message_lambda) do |r_id, r|
+          self._registrations[r_id] = r
+        end
+
+        @request_unregister = Request::Unregister.new(self, send_message_lambda) do |r_id|
+          self._registrations.delete(r_id)
+        end
+
+        @request_publish = Request::Publish.new(self, send_message_lambda) do |r_id|
+        end
 
       end
 
@@ -370,7 +397,7 @@ module Wamp
             method = METHOD_LOOKUP[type]
 
             if method != nil
-              self.send(method, message)
+              method.call(self, message)
             else
               logger.error("#{self.class.name} unknown message type '#{type}'")
             end
@@ -395,54 +422,8 @@ module Wamp
         self.class.check_dict('options', options)
         self.class.check_nil('handler', handler, false)
 
-        # Create a new subscribe request
-        request = self._generate_id
-        self._requests[:subscribe][request] = {t: topic, h: handler, o: options, c: callback}
-
-        # Send the message
-        subscribe = Message::Subscribe.new(request, options, topic)
-        self._send_message(subscribe)
-      end
-
-      # Processes the response to a subscribe request
-      # @param msg [Message::Subscribed] The response from the subscribe
-      def _process_SUBSCRIBED(msg)
-
-        # Remove the pending subscription, add it to the registered ones, and inform the caller
-        s = self._requests[:subscribe].delete(msg.subscribe_request)
-        if s
-
-          details = {}
-          details[:topic] = s[:t] unless details[:topic]
-          details[:type] = 'subscribe'
-          details[:session] = self
-
-          n_s = Subscription.new(s[:t], s[:h], s[:o], self, msg.subscription)
-          self._subscriptions[msg.subscription] = n_s
-          c = s[:c]
-          c.call(n_s, nil, details) if c
-        end
-
-      end
-
-      # Processes an error from a request
-      # @param msg [Message::Error] The response from the subscribe
-      def _process_SUBSCRIBE_error(msg)
-
-        # Remove the pending subscription and inform the caller of the failure
-        s = self._requests[:subscribe].delete(msg.request_request)
-        if s
-
-          details = msg.details || {}
-          details[:topic] = s[:t] unless details[:topic]
-          details[:type] = 'subscribe'
-          details[:session] = self
-
-          c = s[:c]
-          error = Response::CallError.from_message(msg)
-          c.call(nil, error.to_hash, details) if c
-        end
-
+        # Make the request
+        self.request_subscribe.request(topic, handler, options, &callback)
       end
 
       # Processes and event from the broker
@@ -478,55 +459,8 @@ module Wamp
 
         self.class.check_nil('subscription', subscription, false)
 
-        # Create a new unsubscribe request
-        request = self._generate_id
-        self._requests[:unsubscribe][request] = { s: subscription, c: callback }
-
-        # Send the message
-        unsubscribe = Message::Unsubscribe.new(request, subscription.id)
-        self._send_message(unsubscribe)
-      end
-
-      # Processes the response to a unsubscribe request
-      # @param msg [Message::Unsubscribed] The response from the unsubscribe
-      def _process_UNSUBSCRIBED(msg)
-
-        # Remove the pending unsubscription, add it to the registered ones, and inform the caller
-        s = self._requests[:unsubscribe].delete(msg.unsubscribe_request)
-        if s
-          n_s = s[:s]
-          self._subscriptions.delete(n_s.id)
-
-          details = {}
-          details[:topic] = s[:s].topic
-          details[:type] = 'unsubscribe'
-          details[:session] = self
-
-          c = s[:c]
-          c.call(n_s, nil, details) if c
-        end
-
-      end
-
-
-      # Processes an error from a request
-      # @param msg [Message::Error] The response from the subscribe
-      def _process_UNSUBSCRIBE_error(msg)
-
-        # Remove the pending subscription and inform the caller of the failure
-        s = self._requests[:unsubscribe].delete(msg.request_request)
-        if s
-
-          details = msg.details || {}
-          details[:topic] = s[:s].topic unless details[:topic]
-          details[:type] = 'unsubscribe'
-          details[:session] = self
-
-          c = s[:c]
-          error = Response::CallError.from_message(msg)
-          c.call(nil, error.to_hash, details) if c
-        end
-
+        # Make the request
+        self.request_unsubscribe.request(subscription, &callback)
       end
 
       #endregion
@@ -549,55 +483,9 @@ module Wamp
         self.class.check_list('args', args, true)
         self.class.check_dict('kwargs', kwargs, true)
 
-        # Create a new publish request
-        request = self._generate_id
-        self._requests[:publish][request] = {t: topic, a: args, k: kwargs, o: options, c: callback} if options[:acknowledge]
-
-        # Send the message
-        publish = Message::Publish.new(request, options, topic, args, kwargs)
-        self._send_message(publish)
+        # Make the request
+        self.request_publish.request(topic, args, kwargs, options, &callback)
       end
-
-      # Processes the response to a publish request
-      # @param msg [Message::Published] The response from the subscribe
-      def _process_PUBLISHED(msg)
-
-        # Remove the pending publish and alert the callback
-        p = self._requests[:publish].delete(msg.publish_request)
-        if p
-
-          details = {}
-          details[:topic] = p[:t]
-          details[:type] = 'publish'
-          details[:publication] = msg.publication
-          details[:session] = self
-
-          c = p[:c]
-          c.call(p, nil, details) if c
-        end
-
-      end
-
-      # Processes an error from a publish request
-      # @param msg [Message::Error] The response from the subscribe
-      def _process_PUBLISH_error(msg)
-
-        # Remove the pending publish and inform the caller of the failure
-        s = self._requests[:publish].delete(msg.request_request)
-        if s
-
-          details = msg.details || {}
-          details[:topic] = s[:t] unless details[:topic]
-          details[:type] = 'publish'
-          details[:session] = self
-
-          c = s[:c]
-          error = Response::CallError.from_message(msg)
-          c.call(nil, error.to_hash, details) if c
-        end
-
-      end
-
       #endregion
 
       #region Register Logic
@@ -618,54 +506,8 @@ module Wamp
         self.class.check_uri('procedure', procedure)
         self.class.check_nil('handler', handler, false)
 
-        # Create a new registration request
-        request = self._generate_id
-        self._requests[:register][request] = {p: procedure, h: handler, i: interrupt, o: options, c: callback}
-
-        # Send the message
-        register = Message::Register.new(request, options, procedure)
-        self._send_message(register)
-      end
-
-      # Processes the response to a register request
-      # @param msg [Message::Registered] The response from the subscribe
-      def _process_REGISTERED(msg)
-
-        # Remove the pending subscription, add it to the registered ones, and inform the caller
-        r = self._requests[:register].delete(msg.register_request)
-        if r
-          n_r = Registration.new(r[:p], r[:h], r[:o], r[:i], self, msg.registration)
-          self._registrations[msg.registration] = n_r
-
-          details = {}
-          details[:procedure] = r[:p]
-          details[:type] = 'register'
-          details[:session] = self
-
-          c = r[:c]
-          c.call(n_r, nil, details) if c
-        end
-
-      end
-
-      # Processes an error from a request
-      # @param msg [Message::Error] The response from the register
-      def _process_REGISTER_error(msg)
-
-        # Remove the pending registration and inform the caller of the failure
-        r = self._requests[:register].delete(msg.request_request)
-        if r
-
-          details = msg.details || {}
-          details[:procedure] = r[:p] unless details[:procedure]
-          details[:type] = 'register'
-          details[:session] = self
-
-          c = r[:c]
-          error = Response::CallError.from_message(msg)
-          c.call(nil, error.to_hash, details) if c
-        end
-
+        # Make the request
+        self.request_register.request(procedure, handler, options, interrupt, &callback)
       end
 
       # Sends an error back to the caller
@@ -815,56 +657,9 @@ module Wamp
 
         self.class.check_nil('registration', registration, false)
 
-        # Create a new unsubscribe request
-        request = self._generate_id
-        self._requests[:unregister][request] = { r: registration, c: callback }
-
-        # Send the message
-        unregister = Message::Unregister.new(request, registration.id)
-        self._send_message(unregister)
+        # Make the request
+        self.request_unregister.request(registration, &callback)
       end
-
-      # Processes the response to a unregister request
-      # @param msg [Message::Unregistered] The response from the unsubscribe
-      def _process_UNREGISTERED(msg)
-
-        # Remove the pending unregistration, add it to the registered ones, and inform the caller
-        r = self._requests[:unregister].delete(msg.unregister_request)
-        if r
-          r_s = r[:r]
-          self._registrations.delete(r_s.id)
-
-          details = {}
-          details[:procedure] = r_s.procedure
-          details[:type] = 'unregister'
-          details[:session] = self
-
-          c = r[:c]
-          c.call(r_s, nil, details) if c
-        end
-
-      end
-
-      # Processes an error from a request
-      # @param msg [Message::Error] The response from the subscribe
-      def _process_UNREGISTER_error(msg)
-
-        # Remove the pending subscription and inform the caller of the failure
-        r = self._requests[:unregister].delete(msg.request_request)
-        if r
-
-          details = msg.details || {}
-          details[:procedure] = r[:r].procedure unless details[:procedure]
-          details[:type] = 'unregister'
-          details[:session] = self
-
-          c = r[:c]
-          error = Response::CallError.from_message(msg)
-          c.call(nil, error.to_hash, details) if c
-        end
-
-      end
-
       #endregion
 
       #region Call Logic

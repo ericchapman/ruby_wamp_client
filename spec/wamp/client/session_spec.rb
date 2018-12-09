@@ -141,8 +141,8 @@ describe Wamp::Client::Session do
     it 'adds subscribe request to queue' do
       session.subscribe('test.topic', lambda {}, {test: 1})
 
-      expect(session._requests[:subscribe].count).to eq(1)
-      request_id = session._requests[:subscribe].keys.first
+      expect(session.request_subscribe.requests.count).to eq(1)
+      request_id = session.request_subscribe.requests.keys.first
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
@@ -152,8 +152,8 @@ describe Wamp::Client::Session do
       expect(transport.messages[0][3]).to eq('test.topic')
 
       # Check the request dictionary
-      expect(session._requests[:subscribe][request_id][:t]).to eq('test.topic')
-      expect(session._requests[:subscribe][request_id][:o]).to eq({test: 1})
+      expect(session.request_subscribe.requests[request_id][:t]).to eq('test.topic')
+      expect(session.request_subscribe.requests[request_id][:o]).to eq({test: 1})
 
       # Check the subscriptions
       expect(session._subscriptions.count).to eq(0)
@@ -170,7 +170,7 @@ describe Wamp::Client::Session do
         expect(details).to eq({topic: 'test.topic', type: 'subscribe', session: session})
       end
 
-      request_id = session._requests[:subscribe].keys.first
+      request_id = session.request_subscribe.requests.keys.first
 
       expect(count).to eq(0)
 
@@ -181,7 +181,7 @@ describe Wamp::Client::Session do
       expect(count).to eq(1)
 
       # Check that the requests are empty
-      expect(session._requests[:subscribe].count).to eq(0)
+      expect(session.request_subscribe.requests.count).to eq(0)
 
       # Check the subscriptions
       expect(session._subscriptions.count).to eq(1)
@@ -200,7 +200,7 @@ describe Wamp::Client::Session do
         expect(details).to eq({fail: true, topic: 'test.topic', type: 'subscribe', session: session})
       end
 
-      request_id = session._requests[:subscribe].keys.first
+      request_id = session.request_subscribe.requests.keys.first
 
       # Generate server response
       error = Wamp::Client::Message::Error.new(Wamp::Client::Message::Types::SUBSCRIBE,
@@ -210,7 +210,7 @@ describe Wamp::Client::Session do
       expect(count).to eq(1)
 
       # Check that the requests are empty
-      expect(session._requests[:subscribe].count).to eq(0)
+      expect(session.request_subscribe.requests.count).to eq(0)
 
       # Check the subscriptions
       expect(session._subscriptions.count).to eq(0)
@@ -228,7 +228,7 @@ describe Wamp::Client::Session do
       end
 
       session.subscribe('test.topic', handler, {test: 1})
-      request_id = session._requests[:subscribe].keys.first
+      request_id = session.request_subscribe.requests.keys.first
 
       expect(count).to eq(0)
 
@@ -263,7 +263,7 @@ describe Wamp::Client::Session do
       end
 
       # Get the request ID
-      @request_id = session._requests[:subscribe].keys.first
+      @request_id = session.request_subscribe.requests.keys.first
 
       # Generate server response
       subscribed = Wamp::Client::Message::Subscribed.new(@request_id, 3456)
@@ -275,7 +275,7 @@ describe Wamp::Client::Session do
     it 'adds unsubscribe request to the queue' do
       session.unsubscribe(@subscription)
 
-      @request_id = session._requests[:unsubscribe].keys.first
+      @request_id = session.request_unsubscribe.requests.keys.first
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
@@ -284,7 +284,7 @@ describe Wamp::Client::Session do
       expect(transport.messages[0][2]).to eq(@subscription.id)
 
       # Check the request dictionary
-      expect(session._requests[:unsubscribe][@request_id]).not_to be_nil
+      expect(session.request_unsubscribe.requests[@request_id]).not_to be_nil
 
       # Check the subscriptions
       expect(session._subscriptions.count).to eq(1)
@@ -302,7 +302,7 @@ describe Wamp::Client::Session do
         expect(details).to eq({topic: 'test.topic', type: 'unsubscribe', session: session})
       end
 
-      @request_id = session._requests[:unsubscribe].keys.first
+      @request_id = session.request_unsubscribe.requests.keys.first
 
       expect(count).to eq(0)
 
@@ -311,7 +311,7 @@ describe Wamp::Client::Session do
       transport.receive_message(unsubscribed.payload)
 
       # Check the request dictionary
-      expect(session._requests[:unsubscribe].count).to eq(0)
+      expect(session.request_unsubscribe.requests.count).to eq(0)
 
       # Check the subscriptions
       expect(session._subscriptions.count).to eq(0)
@@ -322,14 +322,14 @@ describe Wamp::Client::Session do
 
       @subscription.unsubscribe
 
-      @request_id = session._requests[:unsubscribe].keys.first
+      @request_id = session.request_unsubscribe.requests.keys.first
 
       # Generate Server Response
       unsubscribed = Wamp::Client::Message::Unsubscribed.new(@request_id)
       transport.receive_message(unsubscribed.payload)
 
       # Check the request dictionary
-      expect(session._requests[:unsubscribe].count).to eq(0)
+      expect(session.request_unsubscribe.requests.count).to eq(0)
 
       # Check the subscriptions
       expect(session._subscriptions.count).to eq(0)
@@ -347,7 +347,7 @@ describe Wamp::Client::Session do
         expect(details).to eq({fail: true, topic: 'test.topic', type: 'unsubscribe', session: session})
       end
 
-      @request_id = session._requests[:unsubscribe].keys.first
+      @request_id = session.request_unsubscribe.requests.keys.first
 
       expect(count).to eq(0)
 
@@ -359,7 +359,7 @@ describe Wamp::Client::Session do
       expect(count).to eq(1)
 
       # Check the request dictionary
-      expect(session._requests[:unsubscribe].count).to eq(0)
+      expect(session.request_unsubscribe.requests.count).to eq(0)
 
       # Check the subscriptions
       expect(session._subscriptions.count).to eq(1)
@@ -384,7 +384,7 @@ describe Wamp::Client::Session do
     it 'adds a publish to the publish request queue' do
       session.publish('test.topic', nil, nil, {acknowledge:true})
 
-      @request_id = session._requests[:publish].keys.first
+      @request_id = session.request_publish.requests.keys.first
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
@@ -393,7 +393,7 @@ describe Wamp::Client::Session do
       expect(transport.messages[0][2]).to eq({acknowledge:true})
 
       # Check the request dictionary
-      expect(session._requests[:publish][@request_id]).not_to be_nil
+      expect(session.request_publish.requests[@request_id]).not_to be_nil
 
     end
 
@@ -406,7 +406,7 @@ describe Wamp::Client::Session do
       expect(transport.messages.count).to eq(1)
 
       # Check the request dictionary
-      expect(session._requests[:publish].count).to eq(0)
+      expect(session.request_publish.requests.count).to eq(0)
 
     end
 
@@ -423,7 +423,7 @@ describe Wamp::Client::Session do
         expect(details).to eq({topic: 'test.topic', type: 'publish', session: session, publication: 5678})
       end
 
-      @request_id = session._requests[:publish].keys.first
+      @request_id = session.request_publish.requests.keys.first
 
       expect(count).to eq(0)
 
@@ -432,7 +432,7 @@ describe Wamp::Client::Session do
       transport.receive_message(published.payload)
 
       # Check the request dictionary
-      expect(session._requests[:publish].count).to eq(0)
+      expect(session.request_publish.requests.count).to eq(0)
 
       expect(count).to eq(1)
 
@@ -449,7 +449,7 @@ describe Wamp::Client::Session do
         expect(details).to eq({fail: true, topic: 'test.topic', type: 'publish', session: session})
       end
 
-      @request_id = session._requests[:publish].keys.first
+      @request_id = session.request_publish.requests.keys.first
 
       expect(count).to eq(0)
 
@@ -461,7 +461,7 @@ describe Wamp::Client::Session do
       expect(count).to eq(1)
 
       # Check the request dictionary
-      expect(session._requests[:publish].count).to eq(0)
+      expect(session.request_publish.requests.count).to eq(0)
 
     end
 
@@ -482,8 +482,8 @@ describe Wamp::Client::Session do
     it 'adds register request to queue' do
       session.register('test.procedure', lambda {}, {test: 1})
 
-      expect(session._requests[:register].count).to eq(1)
-      request_id = session._requests[:register].keys.first
+      expect(session.request_register.requests.count).to eq(1)
+      request_id = session.request_register.requests.keys.first
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
@@ -493,8 +493,8 @@ describe Wamp::Client::Session do
       expect(transport.messages[0][3]).to eq('test.procedure')
 
       # Check the request dictionary
-      expect(session._requests[:register][request_id][:p]).to eq('test.procedure')
-      expect(session._requests[:register][request_id][:o]).to eq({test: 1})
+      expect(session.request_register.requests[request_id][:p]).to eq('test.procedure')
+      expect(session.request_register.requests[request_id][:o]).to eq({test: 1})
 
       # Check the subscriptions
       expect(session._registrations.count).to eq(0)
@@ -511,7 +511,7 @@ describe Wamp::Client::Session do
         expect(error).to be_nil
         expect(details).to eq({procedure: 'test.procedure', type: 'register', session: session})
       end
-      request_id = session._requests[:register].keys.first
+      request_id = session.request_register.requests.keys.first
 
       expect(count).to eq(0)
 
@@ -522,7 +522,7 @@ describe Wamp::Client::Session do
       expect(count).to eq(1)
 
       # Check that the requests are empty
-      expect(session._requests[:register].count).to eq(0)
+      expect(session.request_register.requests.count).to eq(0)
 
       # Check the subscriptions
       expect(session._registrations.count).to eq(1)
@@ -541,7 +541,7 @@ describe Wamp::Client::Session do
         expect(details).to eq({fail: true, procedure: 'test.procedure', type: 'register', session: session})
       end
 
-      request_id = session._requests[:register].keys.first
+      request_id = session.request_register.requests.keys.first
 
       # Generate server response
       error = Wamp::Client::Message::Error.new(Wamp::Client::Message::Types::REGISTER,
@@ -551,7 +551,7 @@ describe Wamp::Client::Session do
       expect(count).to eq(1)
 
       # Check that the requests are empty
-      expect(session._requests[:register].count).to eq(0)
+      expect(session.request_register.requests.count).to eq(0)
 
       # Check the subscriptions
       expect(session._registrations.count).to eq(0)
@@ -576,7 +576,7 @@ describe Wamp::Client::Session do
         @response
       end
       session.register('test.procedure', handler, {test: 1})
-      request_id = session._requests[:register].keys.first
+      request_id = session.request_register.requests.keys.first
       registered = Wamp::Client::Message::Registered.new(request_id, 3456)
       transport.receive_message(registered.payload)
 
@@ -586,7 +586,7 @@ describe Wamp::Client::Session do
       end
       session.register('test.defer.procedure', defer_handler)
 
-      request_id = session._requests[:register].keys.first
+      request_id = session.request_register.requests.keys.first
       registered = Wamp::Client::Message::Registered.new(request_id, 4567)
       transport.receive_message(registered.payload)
 
@@ -595,7 +595,7 @@ describe Wamp::Client::Session do
         raise 'error'
       end
       session.register('test.procedure.error', handler, {test: 1})
-      request_id = session._requests[:register].keys.first
+      request_id = session.request_register.requests.keys.first
       registered = Wamp::Client::Message::Registered.new(request_id, 5678)
       transport.receive_message(registered.payload)
 
@@ -604,7 +604,7 @@ describe Wamp::Client::Session do
         raise Wamp::Client::Response::CallError.new('test.error', ['error'])
       end
       session.register('test.procedure.call.error', handler, {test: 1})
-      request_id = session._requests[:register].keys.first
+      request_id = session.request_register.requests.keys.first
       registered = Wamp::Client::Message::Registered.new(request_id, 6789)
       transport.receive_message(registered.payload)
 
@@ -616,7 +616,7 @@ describe Wamp::Client::Session do
       end
       session.register('test.defer.interrupt.procedure', defer_handler, nil, defer_interrupt_handler)
 
-      request_id = session._requests[:register].keys.first
+      request_id = session.request_register.requests.keys.first
       registered = Wamp::Client::Message::Registered.new(request_id, 7896)
       transport.receive_message(registered.payload)
 
@@ -888,7 +888,7 @@ describe Wamp::Client::Session do
       end
 
       # Get the request ID
-      @request_id = session._requests[:register].keys.first
+      @request_id = session.request_register.requests.keys.first
 
       # Generate server response
       registered = Wamp::Client::Message::Registered.new(@request_id, 3456)
@@ -900,7 +900,7 @@ describe Wamp::Client::Session do
     it 'adds unregister request to the queue' do
       session.unregister(@registration)
 
-      @request_id = session._requests[:unregister].keys.first
+      @request_id = session.request_unregister.requests.keys.first
 
       # Check the transport messages
       expect(transport.messages.count).to eq(1)
@@ -909,7 +909,7 @@ describe Wamp::Client::Session do
       expect(transport.messages[0][2]).to eq(@registration.id)
 
       # Check the request dictionary
-      expect(session._requests[:unregister][@request_id]).not_to be_nil
+      expect(session.request_unregister.requests[@request_id]).not_to be_nil
 
       # Check the subscriptions
       expect(session._registrations.count).to eq(1)
@@ -927,7 +927,7 @@ describe Wamp::Client::Session do
         expect(details).to eq({procedure: 'test.procedure', type: 'unregister', session: session})
       end
 
-      @request_id = session._requests[:unregister].keys.first
+      @request_id = session.request_unregister.requests.keys.first
 
       expect(count).to eq(0)
 
@@ -936,7 +936,7 @@ describe Wamp::Client::Session do
       transport.receive_message(unregistered.payload)
 
       # Check the request dictionary
-      expect(session._requests[:unregister].count).to eq(0)
+      expect(session.request_unregister.requests.count).to eq(0)
 
       # Check the subscriptions
       expect(session._registrations.count).to eq(0)
@@ -947,14 +947,14 @@ describe Wamp::Client::Session do
 
       @registration.unregister
 
-      @request_id = session._requests[:unregister].keys.first
+      @request_id = session.request_unregister.requests.keys.first
 
       # Generate Server Response
       unregistered = Wamp::Client::Message::Unregistered.new(@request_id)
       transport.receive_message(unregistered.payload)
 
       # Check the request dictionary
-      expect(session._requests[:unregister].count).to eq(0)
+      expect(session.request_unregister.requests.count).to eq(0)
 
       # Check the subscriptions
       expect(session._registrations.count).to eq(0)
@@ -972,7 +972,7 @@ describe Wamp::Client::Session do
         expect(details).to eq({fail: true, procedure:'test.procedure', type: 'unregister', session: session})
       end
 
-      @request_id = session._requests[:unregister].keys.first
+      @request_id = session.request_unregister.requests.keys.first
 
       expect(count).to eq(0)
 
@@ -984,7 +984,7 @@ describe Wamp::Client::Session do
       expect(count).to eq(1)
 
       # Check the request dictionary
-      expect(session._requests[:unregister].count).to eq(0)
+      expect(session.request_unregister.requests.count).to eq(0)
 
       # Check the subscriptions
       expect(session._registrations.count).to eq(1)
@@ -1229,7 +1229,7 @@ describe Wamp::Client::Session do
       end
       session.register('test.defer.procedure', defer_handler)
 
-      request_id = session._requests[:register].keys.first
+      request_id = session.request_register.requests.keys.first
       registered = Wamp::Client::Message::Registered.new(request_id, 4567)
       transport.receive_message(registered.payload)
 
@@ -1279,7 +1279,7 @@ describe Wamp::Client::Session do
       end
       session.register('test.defer.procedure', defer_handler)
 
-      request_id = session._requests[:register].keys.first
+      request_id = session.request_register.requests.keys.first
       registered = Wamp::Client::Message::Registered.new(request_id, 4567)
       transport.receive_message(registered.payload)
 
@@ -1329,7 +1329,7 @@ describe Wamp::Client::Session do
       end
       session.register('test.defer.procedure', defer_handler)
 
-      request_id = session._requests[:register].keys.first
+      request_id = session.request_register.requests.keys.first
       registered = Wamp::Client::Message::Registered.new(request_id, 4567)
       transport.receive_message(registered.payload)
 
