@@ -1,5 +1,6 @@
 require_relative "base"
 require "wamp/client/message"
+require "wamp/client/manager/registration"
 
 module Wamp
   module Client
@@ -39,7 +40,7 @@ module Wamp
 
             # Create the subscription
             r_id = message.registration
-            r = Registration.new(procedure, handler, options, interrupt, self.session, r_id)
+            r = Manager::RegistrationObject.new(procedure, handler, options, interrupt, self.session, r_id)
 
             # Create the details
             details = {}

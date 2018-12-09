@@ -12,7 +12,7 @@ module Wamp
       # will go to the broker/dealer.  The model supports a request followed
       # by a response that is either a "success" or an error
       class Base
-        attr_reader :requests, :session, :send_message, :on_success
+        attr_reader :requests, :session, :send_message_callback, :on_success
 
         # Constructor
         #
@@ -22,7 +22,7 @@ module Wamp
         def initialize(session, send_message, &on_success)
           @requests = {}
           @session = session
-          @send_message = send_message
+          @send_message_callback = send_message
           @on_success = on_success
         end
 
@@ -36,6 +36,7 @@ module Wamp
 
         # Makes the request to the broker/dealer
         #
+        # @return [Int] - request_id
         def request(*args, &callback)
 
           # Generate an ID
@@ -48,8 +49,9 @@ module Wamp
           self.requests[request_id] = lookup if lookup
 
           # Send the message
-          self.send_message.call(message)
+          send_message(message)
 
+          request_id
         end
 
         # Called when the response was a success
@@ -59,17 +61,21 @@ module Wamp
           request_id = message.request_id
 
           # Get the lookup
-          lookup = self.requests.delete(request_id)
+          lookup = self.requests[request_id]
 
           # Parse the result
-          callback, result, details = self.process_success(message, lookup)
+          callback, result, details, should_keep = self.process_success(message, lookup)
 
-          # Add items to details
-          details[:session] = self.session
+          if callback and details
+            # Add items to details
+            details[:session] = self.session
 
-          # Call the callback
-          callback.call(result, nil, details) if callback
+            # Call the callback
+            callback.call(result, nil, details) if callback
+          end
 
+          # Delete if "should_keep" if false
+          self.requests.delete(request_id) unless should_keep
         end
 
         def error(message)
@@ -82,14 +88,16 @@ module Wamp
           # Parse the result
           callback, details = self.process_error(message, lookup)
 
-          # Add items to details
-          details[:session] = self.session
+          if callback and details
+            # Add items to details
+            details[:session] = self.session
 
-          # Create the error
-          error = Response::CallError.from_message(message)
+            # Create the error
+            error = Response::CallError.from_message(message)
 
-          # Call the callback
-          callback.call(nil, error.to_hash, details) if callback
+            # Call the callback
+            callback.call(nil, error.to_hash, details) if callback
+          end
         end
 
         #region Override Methods
@@ -102,6 +110,14 @@ module Wamp
         def process_error(message, lookup)
         end
         #endregion
+
+        private
+
+        # Sends a message
+        #
+        def send_message(message)
+          self.send_message_callback.call(message) if self.send_message_callback
+        end
 
       end
     end
