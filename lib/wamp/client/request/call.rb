@@ -25,10 +25,10 @@ module Wamp
 
       end
 
-
       class Call < Base
 
         # Method specific to this request that will cancel it
+        #
         def cancel(request_id, mode='skip')
 
           # If the request is still in flight
@@ -42,7 +42,6 @@ module Wamp
 
         end
 
-        # Create the request message and lookup data structure
         def create_request(request_id, procedure, args=nil, kwargs=nil, options={}, &callback)
 
           # Create the lookup
@@ -55,8 +54,6 @@ module Wamp
           [lookup, message]
         end
 
-        # Called when the response was a success
-        #
         def process_success(message, lookup)
           if lookup
             # Get the params
@@ -72,7 +69,7 @@ module Wamp
             # Set the should keep flag if this is a progress message
             should_keep = details[:progress]
 
-            # Only return the information if not progress of receive progress is true
+            # Only return the information if not progress or receive progress is true
             if not details[:progress] or (details[:progress] and options[:receive_progress])
 
               # Create the response

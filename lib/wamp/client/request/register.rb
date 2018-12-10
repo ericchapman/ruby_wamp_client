@@ -14,7 +14,6 @@ module Wamp
 
       class Register < Base
 
-        # Create the request message and lookup data structure
         def create_request(request_id, procedure, handler, options=nil, interrupt=nil, &callback)
 
           # Create the lookup
@@ -27,8 +26,6 @@ module Wamp
           [lookup, message]
         end
 
-        # Called when the response was a success
-        #
         def process_success(message, lookup)
           if lookup
             # Get the params

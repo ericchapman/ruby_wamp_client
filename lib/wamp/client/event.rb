@@ -36,33 +36,36 @@ module Wamp
 
       module ClassMethods
         def create_event(events, attribute: nil, setter: nil, trigger: nil)
-          attribute ||= :event_callbacks
+          attribute ||= :event
           setter ||= :on
           trigger ||= :trigger
-          event_name = "#{attribute}_events"
+
+          # Create the attributes
+          callback_name = "#{attribute}_callbacks"
+          event_list_name = "#{attribute}_list"
 
           # Creates the attribute to store the callbacks
-          attr_accessor attribute
+          attr_accessor callback_name
 
           # Creates the attributes to store the allowed events
-          define_method event_name do
+          define_method event_list_name do
             events
           end
 
           # Creates the setter.  Default: "on"
           define_method setter do |event, &handler|
-            unless self.send(event_name).include?(event)
+            unless self.send(event_list_name).include?(event)
               raise RuntimeError, "unknown #{setter}(event) '#{event}'"
             end
 
-            callback = self.send(attribute) || {}
+            callback = self.send(callback_name) || {}
             callback[event] = handler
-            self.send("#{attribute}=", callback)
+            self.send("#{callback_name}=", callback)
           end
 
           # Create the trigger.  Default: "trigger"
           define_method trigger do |event, *args|
-            handler = (self.send(attribute) || {})[event]
+            handler = (self.send(callback_name) || {})[event]
             if handler != nil
               handler.call(*args)
             end

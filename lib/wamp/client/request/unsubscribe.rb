@@ -13,7 +13,6 @@ module Wamp
 
       class Unsubscribe < Base
 
-        # Create the request message and lookup data structure
         def create_request(request_id, subscription, &callback)
 
           # Create the lookup
@@ -26,8 +25,6 @@ module Wamp
           [lookup, message]
         end
 
-        # Called when the response was a success
-        #
         def process_success(message, lookup)
           if lookup
             # Get the params

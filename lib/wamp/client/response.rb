@@ -1,3 +1,5 @@
+require "wamp/client/event"
+
 module Wamp
   module Client
     module Response
@@ -96,47 +98,35 @@ module Wamp
         end
 
         def self.ensure(result)
-          if result.is_a?(self)
-            result
-          else
+          unless result.is_a?(self)
             args = result != nil ? [result] : nil
-            self.new(DEFAULT_ERROR, args)
+            result = self.new(DEFAULT_ERROR, args)
           end
+
+          result
         end
       end
 
       class CallDefer
+        include Event
         attr_accessor :request, :registration
 
-        @on_complete
-        def on_complete(&on_complete)
-          @on_complete = on_complete
-        end
-
-        @on_error
-        def on_error(&on_error)
-          @on_error = on_error
-        end
+        create_event [:complete, :error, :progress]
 
         def succeed(result)
-          @on_complete.call(self, result) if @on_complete
+          trigger :complete, self, result
         end
 
         def fail(error)
-          @on_error.call(self, error) if @on_error
+          trigger :error, self, error
         end
 
       end
 
       class ProgressiveCallDefer < CallDefer
 
-        @on_progress
-        def on_progress(&on_progress)
-          @on_progress = on_progress
-        end
-
         def progress(result)
-          @on_progress.call(self, result) if @on_progress
+          trigger :progress, self, result
         end
 
       end

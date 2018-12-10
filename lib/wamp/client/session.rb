@@ -43,7 +43,8 @@ module Wamp
       include Check
       include Event
 
-      attr_accessor :transport, :options, :request, :callback, :subscription, :registration, :establish
+      attr_accessor :transport, :options, :request, :callback,
+                    :subscription, :registration, :establish
 
       create_event [:join, :challenge, :leave]
 
@@ -135,7 +136,6 @@ module Wamp
         # Leave the session
         self.establish.leave(reason, message)
       end
-
 
       # Subscribes to a topic
       #

@@ -10,14 +10,12 @@ module Wamp
         # Serializes the object
         # @param object - The object to serialize
         def serialize(object)
-
         end
 
         # Deserializes the object
         # @param string [String] - The string to deserialize
         # @return The deserialized object
         def deserialize(string)
-
         end
 
       end

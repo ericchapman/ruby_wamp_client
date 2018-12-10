@@ -72,20 +72,20 @@ module Wamp
                 self.defers[request_id] = value
 
                 # On complete, send the result
-                value.on_complete do |defer, result|
+                value.on :complete do |defer, result|
                   result = Response::CallResult.ensure(result)
                   self.yield(defer.request, result, {}, true)
                 end
 
                 # On error, send the error
-                value.on_error do |defer, error|
+                value.on :error do |defer, error|
                   error = Response::CallError.ensure(error)
                   self.yield(defer.request, error, {}, true)
                 end
 
                 # For progressive, return the progress
                 if value.is_a? Response::ProgressiveCallDefer
-                  value.on_progress do |defer, result|
+                  value.on :progress do |defer, result|
                     result = Response::CallResult.ensure(result)
                     self.yield(defer.request, result, { progress: true }, true)
                   end

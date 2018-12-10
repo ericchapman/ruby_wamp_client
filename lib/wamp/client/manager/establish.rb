@@ -50,11 +50,10 @@ module Wamp
         #
         def initialize(session, send_message)
           super session, send_message
-          self.goodbye_sent = false
 
-          # Initialize the session
           self.id = nil
           self.realm = nil
+          self.goodbye_sent = false
         end
 
         # Returns true if the session is open

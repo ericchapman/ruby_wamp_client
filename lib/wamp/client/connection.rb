@@ -27,12 +27,14 @@ module Wamp
 
         @reconnect = true
         @open = false
+
+        logger.info("#{self.class.name} using version #{Wamp::Client::VERSION}")
       end
 
       # Opens the connection
       def open
 
-        raise RuntimeError, 'The connection is already open' if self.is_open?
+        raise RuntimeError, 'connection is already open' if self.is_open?
 
         @reconnect = true
         @retry_timer = 1
@@ -48,7 +50,7 @@ module Wamp
       # Closes the connection
       def close
 
-        raise RuntimeError, 'The connection is already closed' unless self.is_open?
+        raise RuntimeError, 'connection is already closed' unless self.is_open?
 
         # Leave the session
         @reconnect = false
@@ -110,7 +112,7 @@ module Wamp
         # Setup transport callbacks
         self.transport.on(:open) do
 
-          logger.info("#{self.class.name} TRANSPORT OPEN")
+          logger.info("#{self.class.name} transport open")
 
           # Call the callback
           trigger :connect
@@ -121,7 +123,7 @@ module Wamp
         end
 
         self.transport.on(:close) do |reason|
-          logger.info("#{self.class.name} TRANSPORT CLOSED: #{reason}")
+          logger.info("#{self.class.name} transport closed: #{reason}")
           @open = false
 
           unless @retrying
@@ -141,7 +143,7 @@ module Wamp
         end
 
         self.transport.on(:error) do |message|
-          logger.error("#{self.class.name} TRANSPORT ERROR: #{message}")
+          logger.error("#{self.class.name} transport error: #{message}")
         end
 
         @open = true
@@ -163,7 +165,7 @@ module Wamp
 
           create_transport
 
-          logger.info("#{self.class.name} RECONNECT in #{@retry_timer} seconds")
+          logger.info("#{self.class.name} reconnect in #{@retry_timer} seconds")
           self.transport_class.add_timer(@retry_timer*1000) do
             retry_connect if @retrying
           end
