@@ -1,100 +1,16 @@
-=begin
-
-Copyright (c) 2018 Eric Chapman
-
-MIT License
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-=end
-
 require 'wamp/client/session'
+require 'wamp/client/event'
 require 'wamp/client/transport/web_socket_event_machine'
 require 'wamp/client/transport/faye_web_socket'
 
 module Wamp
   module Client
     class Connection
+      include Event
+
       attr_accessor :options, :transport_class, :transport, :session
 
-      @reconnect = true
-
-      @open = false
-      def is_open?
-        @open
-      end
-
-      # Called when the connection is established
-      @on_connect
-      def on_connect(&on_connect)
-        @on_connect = on_connect
-      end
-
-      # Called when the WAMP session is established
-      # @param session [WampClient::Session]
-      # @param details [Hash]
-      @on_join
-      def on_join(&on_join)
-        @on_join = on_join
-      end
-
-      # Called when the WAMP session presents a challenge
-      # @param authmethod [String]
-      # @param extra [Hash]
-      @on_challenge
-      def on_challenge(&on_challenge)
-        @on_challenge = on_challenge
-      end
-
-      # Called when the WAMP session is terminated
-      # @param reason [String] The reason the session left the router
-      # @param details [Hash] Object containing information about the left session
-      @on_leave
-      def on_leave(&on_leave)
-        @on_leave = on_leave
-      end
-
-      # Called when the connection is terminated
-      # @param reason [String] The reason the transport was disconnected
-      @on_disconnect
-      def on_disconnect(&on_disconnect)
-        @on_disconnect = on_disconnect
-      end
-
-      # Simple setter for callbacks
-      def on(event, &callback)
-        case event
-        when :connect
-          self.on_connect(&callback)
-        when :join
-          self.on_join(&callback)
-        when :challenge
-          self.on_challenge(&callback)
-        when :leave
-          self.on_leave(&callback)
-        when :disconnect
-          self.on_disconnect(&callback)
-        else
-          raise RuntimeError, "Unknown on(event) '#{event}'"
-        end
-      end
+      create_event [:connect, :join, :challenge, :leave, :disconnect]
 
       # @param options [Hash] The different options to pass to the connection
       # @option options [String] :uri The uri of the WAMP router to connect to
@@ -108,12 +24,17 @@ module Wamp
       def initialize(options)
         self.transport_class = options.delete(:transport) || Wamp::Client::Transport::WebSocketEventMachine
         self.options = options || {}
+
+        @reconnect = true
+        @open = false
+
+        logger.info("#{self.class.name} using version #{Wamp::Client::VERSION}")
       end
 
       # Opens the connection
       def open
 
-        raise RuntimeError, 'The connection is already open' if self.is_open?
+        raise RuntimeError, 'connection is already open' if self.is_open?
 
         @reconnect = true
         @retry_timer = 1
@@ -121,7 +42,7 @@ module Wamp
 
         self.transport_class.start_event_machine do
           # Create the transport
-          self._create_transport
+          create_transport
         end
 
       end
@@ -129,7 +50,7 @@ module Wamp
       # Closes the connection
       def close
 
-        raise RuntimeError, 'The connection is already closed' unless self.is_open?
+        raise RuntimeError, 'connection is already closed' unless self.is_open?
 
         # Leave the session
         @reconnect = false
@@ -138,29 +59,37 @@ module Wamp
 
       end
 
-      def _create_session
+      # Returns true if the connection is open
+      #
+      def is_open?
+        @open
+      end
+
+      private
+
+      def create_session
         self.session = Wamp::Client::Session.new(self.transport, self.options)
 
         # Setup session callbacks
         self.session.on(:challenge) do |authmethod, extra|
-          self._finish_retry
-          @on_challenge.call(authmethod, extra) if @on_challenge
+          finish_retry
+          trigger :challenge, authmethod, extra
         end
 
         self.session.on(:join) do |details|
-          self._finish_retry
-          @on_join.call(self.session, details) if @on_join
+          finish_retry
+          trigger :join, self.session, details
         end
 
         self.session.on(:leave) do |reason, details|
 
           unless @retrying
-            @on_leave.call(reason, details) if @on_leave
+            trigger :leave, reason, details
           end
 
           if @reconnect
             # Retry
-            self._retry unless @retrying
+            retry_connect unless @retrying
           else
             # Close the transport
             self.transport.disconnect
@@ -170,7 +99,7 @@ module Wamp
         self.session.join(self.options[:realm])
       end
 
-      def _create_transport
+      def create_transport
 
         if self.transport
           self.transport.disconnect
@@ -183,22 +112,22 @@ module Wamp
         # Setup transport callbacks
         self.transport.on(:open) do
 
-          logger.info("#{self.class.name} TRANSPORT OPEN")
+          logger.info("#{self.class.name} transport open")
 
           # Call the callback
-          @on_connect.call if @on_connect
+          trigger :connect
 
           # Create the session
-          self._create_session
+          create_session
 
         end
 
         self.transport.on(:close) do |reason|
-          logger.info("#{self.class.name} TRANSPORT CLOSED: #{reason}")
+          logger.info("#{self.class.name} transport closed: #{reason}")
           @open = false
 
           unless @retrying
-            @on_disconnect.call(reason) if @on_disconnect
+            trigger :disconnect, reason
           end
 
           # Nil out the session since the transport closed underneath it
@@ -206,7 +135,7 @@ module Wamp
 
           if @reconnect
             # Retry
-            self._retry unless @retrying
+            retry_connect unless @retrying
           else
             # Stop the Event Machine
             self.transport_class.stop_event_machine
@@ -214,7 +143,7 @@ module Wamp
         end
 
         self.transport.on(:error) do |message|
-          logger.error("#{self.class.name} TRANSPORT ERROR: #{message}")
+          logger.error("#{self.class.name} transport error: #{message}")
         end
 
         @open = true
@@ -223,28 +152,26 @@ module Wamp
 
       end
 
-      def _finish_retry
+      def finish_retry
         @retry_timer = 1
         @retrying = false
       end
 
-      def _retry
+      def retry_connect
 
         if self.session == nil or not self.session.is_open?
           @retry_timer = 2*@retry_timer unless @retry_timer == 32
           @retrying = true
 
-          self._create_transport
+          create_transport
 
-          logger.info("#{self.class.name} RECONNECT in #{@retry_timer} seconds")
+          logger.info("#{self.class.name} reconnect in #{@retry_timer} seconds")
           self.transport_class.add_timer(@retry_timer*1000) do
-            self._retry if @retrying
+            retry_connect if @retrying
           end
         end
 
       end
-
-      private
 
       # Returns the logger
       #

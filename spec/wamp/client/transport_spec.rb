@@ -86,7 +86,7 @@ describe Wamp::Client::Transport do
       let(:socket) { transport.socket }
       before(:each) {
         allow(WebSocket::EventMachine::Client).to receive(:connect) { |options|
-          SpecHelper::WebSocketEventMachineClientStub.new
+          WebSocketEventMachineClientStub.new
         }
 
         transport.connect
@@ -152,7 +152,7 @@ describe Wamp::Client::Transport do
       let(:socket) { transport.socket }
       before(:each) {
         allow(Faye::WebSocket::Client).to receive(:new) { |uri, protocols, options|
-          SpecHelper::FayeWebSocketClientStub.new
+          FayeWebSocketClientStub.new
         }
 
         transport.connect

@@ -1,0 +1,6 @@
+require 'wamp/client/request/subscribe'
+require 'wamp/client/request/unsubscribe'
+require 'wamp/client/request/register'
+require 'wamp/client/request/unregister'
+require 'wamp/client/request/publish'
+require 'wamp/client/request/call'
