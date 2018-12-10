@@ -119,7 +119,7 @@ module Wamp
           end
 
           # Remove the defer if this was not a progress update
-          if check_defer and options[:progress] == nil
+          if check_defer and not options[:progress]
             self.defers.delete(request_id)
           end
 
