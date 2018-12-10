@@ -90,11 +90,7 @@ A connection can be created as follows
 ```ruby
 require 'wamp/client'
 
-options = {
-    uri: 'ws://127.0.0.1:8080/ws',
-    realm: 'realm1',
-}
-connection = Wamp::Client::Connection.new(options)
+connection = Wamp::Client::Connection.new(uri: 'ws://127.0.0.1:8080/ws', realm: 'realm1')
 
 connection.on(:join) do |session, details|
   puts "Session Open"
@@ -174,12 +170,7 @@ method 'add_tick_loop'
 ```ruby
 require 'wamp/client'
 
-options = {
-    uri: 'ws://127.0.0.1:8080/ws',
-    realm: 'realm1',
-}
-
-connection = Wamp::Client::Connection.new(options)
+connection = Wamp::Client::Connection.new(uri: 'ws://127.0.0.1:8080/ws', realm: 'realm1')
 
 connection.transport_class.add_tick_loop do
   # Do something periodic

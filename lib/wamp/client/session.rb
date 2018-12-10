@@ -57,6 +57,11 @@ module Wamp
         # Parameters
         self.options = options || {}
 
+        # Log the event
+        logger.info("#{self.class.name} created with options")
+        logger.info("   uri: #{options[:uri]}")
+        logger.info("   realm: #{options[:realm]}")
+
         # Create the send message lambda for the request objects
         send_message_lambda = -> m { send_message(m) }
 
