@@ -13,6 +13,8 @@ execute in the background.
 
 ## Revision History
 
+ - v0.2.1:
+   - Logging cleanup
  - v0.2.0:
    - Breaking changes to the API including
      - Moving CallResult, CallError, CallDefer, and ProgressiveCallDefer to common module called "Response"

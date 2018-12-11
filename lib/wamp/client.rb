@@ -5,7 +5,7 @@ require 'wamp/client/connection'
 require 'wamp/client/session'
 require 'wamp/client/auth'
 require 'wamp/client/response'
-require 'logger'
+require 'wamp/client/logging'
 
 module Wamp
   module Client
@@ -13,31 +13,14 @@ module Wamp
     # Returns the logger object
     #
     def self.logger
-      unless defined?(@logger)
-        @logger = Logger.new(STDOUT)
-        @logger.level = Logger::INFO
-      end
-      @logger
+      Logging.logger
     end
 
     # Sets the log level
     #
     # @param log_level [Symbol] - the desired log level
     def self.log_level=(log_level)
-      level =
-          case log_level
-          when :error
-            Logger::ERROR
-          when :debug
-            Logger::DEBUG
-          when :fatal
-            Logger::FATAL
-          when :warn
-            Logger::WARN
-          else
-            Logger::INFO
-          end
-      self.logger.level = level
+      Logging.log_level = log_level
     end
 
   end
