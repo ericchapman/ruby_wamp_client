@@ -13,6 +13,8 @@ execute in the background.
 
 ## Revision History
 
+ - v0.2.2:
+   - Fixed "time" issue with logging
  - v0.2.1:
    - Logging cleanup
  - v0.2.0:
